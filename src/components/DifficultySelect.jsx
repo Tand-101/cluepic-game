@@ -1,4 +1,3 @@
-/ src/components/DifficultySelect.jsx
 import React from 'react';
 import { BarChart3, Settings } from 'lucide-react';
 
