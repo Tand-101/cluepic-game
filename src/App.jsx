@@ -1,78 +1,134 @@
-// src/App.jsx (Part 1 of 2)
-// PASTE THIS ENTIRE FILE, THEN CONTINUE WITH PART 2
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Share2 } from 'lucide-react';
-import { fetchPuzzles } from './lib/supabase';
+import { Home, Share2, ChevronRight } from 'lucide-react';
+import { fetchPuzzlesByDifficulty, fetchDailyPuzzles } from './lib/supabase';
+import { getUserId, getUserProfile, updateStreak, recordPuzzleCompletion, 
+         getUserStatistics, updateHintsClues } from './lib/storage';
+import { getEffectType, applyImageEffect } from './utils/imageEffects';
 import DifficultySelect from './components/DifficultySelect';
 import Settings from './components/Settings';
 import HintShop from './components/HintShop';
+import ClueShop from './components/ClueShop';
 import Stats from './components/Stats';
 
 const CluepicGame = () => {
-  const expansionPacks = [
-    { name: 'Library', price: 'Free with Review', puzzles: '150', emoji: '📚', locked: false, requiresReview: true },
-    { name: 'Halloween', price: '£2.99', puzzles: '150', emoji: '🎃', locked: true, requiresReview: false },
-    { name: 'Animals', price: '£2.99', puzzles: '150', emoji: '🦁', locked: true, requiresReview: false },
-    { name: 'Professions', price: '£2.99', puzzles: '150', emoji: '👨‍⚕️', locked: true, requiresReview: false },
-    { name: 'Travel', price: '£2.99', puzzles: '150', emoji: '✈️', locked: true, requiresReview: false },
-    { name: 'Food', price: '£2.99', puzzles: '150', emoji: '🍕', locked: false, requiresReview: false },
-    { name: 'Sports', price: '£2.99', puzzles: '150', emoji: '⚽', locked: true, requiresReview: false },
-    { name: 'Nature', price: '£2.99', puzzles: '150', emoji: '🌲', locked: true, requiresReview: false },
-    { name: 'Music', price: '£2.99', puzzles: '150', emoji: '🎵', locked: true, requiresReview: false }
-  ];
-
-  // State management
+  // User & Profile State
+  const [userId, setUserId] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [totalScore, setTotalScore] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  
+  // Puzzle State - Amendment 3: Different puzzles per difficulty
   const [puzzles, setPuzzles] = useState([]);
+  const [dailyPuzzles, setDailyPuzzles] = useState({ Classic: [], Challenge: [], Timed: [] });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [correctLetters, setCorrectLetters] = useState(new Set());
   const [gameState, setGameState] = useState('playing');
   const [difficulty, setDifficulty] = useState('easy');
-  const [score, setScore] = useState(0);
   const [showDifficultySelect, setShowDifficultySelect] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [userInput, setUserInput] = useState([]);
-  const [streak, setStreak] = useState(3);
+  
+  // Amendment 5: Image effects
+  const [effectType, setEffectType] = useState('blur');
+  
+  // Hints & Clues - Amendment 7
   const [hintsRemaining, setHintsRemaining] = useState(5);
+  const [cluesRemaining, setCluesRemaining] = useState(5);
+  const [clueRevealed, setClueRevealed] = useState(false);
+  
+  // Timer State
   const [timeRemaining, setTimeRemaining] = useState(120);
   const [timerActive, setTimerActive] = useState(false);
+  
+  // UI State
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHintShop, setShowHintShop] = useState(false);
+  const [showClueShop, setShowClueShop] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [noirMode, setNoirMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shakeEffect, setShakeEffect] = useState(false);
   const [celebrateEffect, setCelebrateEffect] = useState(false);
+  
+  // Stats - Amendment 11, 16
+  const [userStats, setUserStats] = useState({
+    total: { played: 0, won: 0, score: 0, winRate: 0 },
+    classic: { played: 0, won: 0, score: 0, winRate: 0 },
+    challenge: { played: 0, won: 0, score: 0, winRate: 0 },
+    timed: { played: 0, won: 0, score: 0, winRate: 0 }
+  });
+  
   const inputRefs = useRef([]);
-
   const maxAttempts = 5;
   
-  // Load puzzles from Supabase on mount
+  const puzzle = puzzles[currentPuzzle];
+
+  // Initialize user on mount
   useEffect(() => {
-    const loadPuzzles = async () => {
-      const fetchedPuzzles = await fetchPuzzles();
-      setPuzzles(fetchedPuzzles);
-      setUserInput(Array(fetchedPuzzles[0]?.word.length || 0).fill(''));
+    const initUser = async () => {
+      const id = getUserId();
+      setUserId(id);
+      
+      const profile = await getUserProfile(id);
+      setUserProfile(profile);
+      setTotalScore(profile.total_score);
+      setCurrentStreak(profile.current_streak);
+      setHintsRemaining(profile.hints_remaining);
+      setCluesRemaining(profile.clues_remaining);
+      setIsPremium(profile.is_premium);
+      
+      // Update streak
+      const newStreak = await updateStreak(id, profile.last_login_date);
+      setCurrentStreak(newStreak);
+      
+      // Load stats
+      const stats = await getUserStatistics(id);
+      setUserStats(stats);
+      
+      // Load daily puzzles - Amendment 8
+      const dailies = await fetchDailyPuzzles();
+      setDailyPuzzles(dailies);
     };
-    loadPuzzles();
+    
+    initUser();
   }, []);
 
-  const puzzle = puzzles[currentPuzzle];
-  const blurAmount = puzzle ? Math.max(0, 30 - (attempts * 6)) : 30;
+  // Load puzzles when difficulty changes - Amendment 3
+  useEffect(() => {
+    const loadPuzzles = async () => {
+      if (difficulty) {
+        const fetchedPuzzles = await fetchPuzzlesByDifficulty(difficulty);
+        setPuzzles(fetchedPuzzles);
+        
+        if (fetchedPuzzles.length > 0) {
+          setUserInput(Array(fetchedPuzzles[0].word.length).fill(''));
+          // Amendment 5: Set effect type based on puzzle ID
+          setEffectType(getEffectType(fetchedPuzzles[0].id));
+        }
+      }
+    };
+    
+    if (!showDifficultySelect) {
+      loadPuzzles();
+    }
+  }, [difficulty, showDifficultySelect]);
 
   // Reset puzzle state when changing puzzles
   useEffect(() => {
     if (puzzle) {
       setImageLoaded(false);
       setUserInput(Array(puzzle.word.length).fill(''));
+      setClueRevealed(false);
+      setEffectType(getEffectType(puzzle.id));
+      
       if (difficulty === 'timed') {
         setTimeRemaining(120);
         setTimerActive(true);
       }
     }
-  }, [currentPuzzle, puzzle?.word.length, difficulty]);
+  }, [currentPuzzle, puzzle?.word.length, difficulty, puzzle?.id]);
 
   // Timer logic
   useEffect(() => {
@@ -123,6 +179,20 @@ const CluepicGame = () => {
     }
   };
 
+  // Amendment 7: Use clue
+  const useClue = () => {
+    if (cluesRemaining > 0 || isPremium) {
+      setClueRevealed(true);
+      if (!isPremium) {
+        const newClues = cluesRemaining - 1;
+        setCluesRemaining(newClues);
+        if (userId) {
+          updateHintsClues(userId, hintsRemaining, newClues);
+        }
+      }
+    }
+  };
+
   const useHint = () => {
     if (!puzzle) return;
     if (hintsRemaining > 0 || isPremium) {
@@ -132,6 +202,7 @@ const CluepicGame = () => {
           emptyIndices.push(i);
         }
       }
+      
       if (emptyIndices.length > 0) {
         const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
         const newCorrectLetters = new Set(correctLetters);
@@ -143,21 +214,27 @@ const CluepicGame = () => {
         setUserInput(newInput);
         
         if (!isPremium) {
-          setHintsRemaining(hintsRemaining - 1);
+          const newHints = hintsRemaining - 1;
+          setHintsRemaining(newHints);
+          if (userId) {
+            updateHintsClues(userId, newHints, cluesRemaining);
+          }
         }
       }
     }
   };
 
+  // Amendment 13: Red boxes for failed puzzles
   const shareResults = () => {
     const modeEmoji = difficulty === 'easy' ? '🟢' : difficulty === 'timed' ? '⚡' : '🔴';
     const attemptsText = gameState === 'won' ? `${attempts + 1}/${maxAttempts}` : 'X/5';
-    const squares = Array(maxAttempts).fill('⬜').fill('🟩', 0, attempts + (gameState === 'won' ? 1 : 0));
+    const fillColor = gameState === 'won' ? '🟩' : '🟥';
+    const squares = Array(maxAttempts).fill('⬜').fill(fillColor, 0, attempts + (gameState === 'won' ? 1 : 0));
     
     const shareText = `CLUEPIC ${modeEmoji}
 ${attemptsText}
 ${squares.join('')}
-🔥 ${streak} day streak`;
+🔥 ${currentStreak} day streak`;
 
     if (navigator.share) {
       navigator.share({ text: shareText });
@@ -186,7 +263,7 @@ ${squares.join('')}
       }
     }
   };
-  
+
   const checkGuess = () => {
     if (!puzzle) return;
     const guessedWord = userInput.join('');
@@ -194,24 +271,34 @@ ${squares.join('')}
     if (guessedWord === puzzle.word) {
       setGameState('won');
       const pointsEarned = (maxAttempts - attempts) * 100;
-      setScore(score + pointsEarned);
+      setTotalScore(totalScore + pointsEarned);
       setTimerActive(false);
       setCelebrateEffect(true);
       setTimeout(() => setCelebrateEffect(false), 2000);
+      
+      // Record completion
+      if (userId) {
+        recordPuzzleCompletion(userId, {
+          puzzleId: puzzle.id,
+          difficulty: puzzle.difficulty,
+          success: true,
+          attempts: attempts + 1,
+          scoreEarned: pointsEarned
+        });
+      }
     } else {
       setShakeEffect(true);
       setTimeout(() => setShakeEffect(false), 500);
 
       const newCorrectLetters = new Set(correctLetters);
       
-      if (difficulty === 'easy' && attempts >= 2) {
-        for (let i = 0; i < userInput.length; i++) {
-          if (userInput[i] === puzzle.word[i]) {
-            newCorrectLetters.add(i);
-          }
+      // Amendment 6: Hints populate from attempt 1 if correct
+      for (let i = 0; i < userInput.length; i++) {
+        if (userInput[i] === puzzle.word[i]) {
+          newCorrectLetters.add(i);
         }
-        setCorrectLetters(newCorrectLetters);
       }
+      setCorrectLetters(newCorrectLetters);
       
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -219,6 +306,17 @@ ${squares.join('')}
       if (newAttempts >= maxAttempts) {
         setGameState('lost');
         setTimerActive(false);
+        
+        // Record failed attempt
+        if (userId) {
+          recordPuzzleCompletion(userId, {
+            puzzleId: puzzle.id,
+            difficulty: puzzle.difficulty,
+            success: false,
+            attempts: newAttempts,
+            scoreEarned: 0
+          });
+        }
       } else {
         const resetInput = Array(puzzle.word.length).fill('');
         for (let i = 0; i < puzzle.word.length; i++) {
@@ -239,15 +337,16 @@ ${squares.join('')}
     }
   };
 
-  // CHANGE #3: Independent puzzles - reset all state
+  // Amendment 3: Independent puzzles - reset all state
   const nextPuzzle = () => {
     const newPuzzleIndex = currentPuzzle < puzzles.length - 1 ? currentPuzzle + 1 : 0;
     setCurrentPuzzle(newPuzzleIndex);
-    setAttempts(0); // Reset attempts
-    setCorrectLetters(new Set()); // Reset hints
-    setGameState('playing'); // Reset game state
-    setUserInput(Array(puzzles[newPuzzleIndex]?.word.length || 0).fill('')); // Reset input
-    setTimeRemaining(120); // Reset timer
+    setAttempts(0);
+    setCorrectLetters(new Set());
+    setGameState('playing');
+    setClueRevealed(false);
+    setUserInput(Array(puzzles[newPuzzleIndex]?.word.length || 0).fill(''));
+    setTimeRemaining(120);
     if (difficulty === 'timed') {
       setTimerActive(true);
     }
@@ -259,12 +358,19 @@ ${squares.join('')}
     setCorrectLetters(new Set());
     setGameState('playing');
     setTimerActive(false);
+    setClueRevealed(false);
   };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Amendment 18: Purchase premium
+  const handlePurchasePremium = (type) => {
+    // TODO: Implement actual in-app purchase
+    alert(`Premium ${type} purchase coming soon!`);
   };
 
   // Show different screens
@@ -276,6 +382,7 @@ ${squares.join('')}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
         isPremium={isPremium}
+        onPurchasePremium={handlePurchasePremium}
         onClose={() => setShowSettings(false)}
       />
     );
@@ -291,11 +398,26 @@ ${squares.join('')}
     );
   }
 
+  // Amendment 7: Clue shop
+  if (showClueShop) {
+    return (
+      <ClueShop
+        cluesRemaining={cluesRemaining}
+        noirMode={noirMode}
+        onClose={() => setShowClueShop(false)}
+      />
+    );
+  }
+
   if (showStats) {
     return (
       <Stats
-        score={score}
-        streak={streak}
+        totalScore={totalScore}
+        currentStreak={currentStreak}
+        winRate={userStats.total.winRate}
+        classicStats={userStats.classic}
+        challengeStats={userStats.challenge}
+        timedStats={userStats.timed}
         noirMode={noirMode}
         onClose={() => setShowStats(false)}
       />
@@ -305,8 +427,8 @@ ${squares.join('')}
   if (showDifficultySelect) {
     return (
       <DifficultySelect
-        streak={streak}
-        expansionPacks={expansionPacks}
+        currentStreak={currentStreak}
+        expansionPacks={[]}
         startGame={startGame}
         setShowStats={setShowStats}
         setShowSettings={setShowSettings}
@@ -359,6 +481,14 @@ ${squares.join('')}
                 {formatTime(timeRemaining)}
               </div>
             )}
+            {/* Amendment 7: Clue button */}
+            <button 
+              onClick={() => setShowClueShop(true)}
+              className="bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {cluesRemaining} Clues
+            </button>
             <button 
               onClick={() => setShowHintShop(true)}
               className="bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors"
@@ -367,13 +497,13 @@ ${squares.join('')}
               {hintsRemaining} Hints
             </button>
             <div className="text-right">
-              <div className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{score}</div>
+              <div className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{totalScore}</div>
               <div className="text-xs text-stone-500" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px' }}>Points</div>
             </div>
           </div>
         </div>
 
-        {/* Image */}
+        {/* Amendment 5: Image with effects */}
         <div className={`mb-4 ${shakeEffect ? 'shake' : ''}`}>
           <div className="relative bg-stone-200 overflow-hidden rounded" style={{ paddingBottom: '75%', filter: noirMode ? 'grayscale(100%)' : 'none' }}>
             {!imageLoaded && (
@@ -388,7 +518,7 @@ ${squares.join('')}
               crossOrigin="anonymous"
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
               style={{
-                filter: gameState === 'playing' ? `blur(${blurAmount}px)` : 'blur(0px)',
+                filter: gameState === 'playing' ? applyImageEffect(effectType, attempts + 1) : 'none',
                 opacity: imageLoaded ? 1 : 0
               }}
             />
@@ -400,8 +530,8 @@ ${squares.join('')}
           </div>
         </div>
 
-        {/* CHANGE #5: Show hint only after attempt 3 */}
-        {gameState === 'playing' && attempts >= 2 && (
+        {/* Amendment 7: Show hint if clue revealed or after attempt 3 */}
+        {gameState === 'playing' && (clueRevealed || attempts >= 2) && (
           <div className="mb-3 text-center animate-fadeIn">
             <p className="text-stone-600 text-xs">{puzzle.hint}</p>
           </div>
@@ -427,7 +557,7 @@ ${squares.join('')}
                 />
                 {correctLetters.has(index) && gameState === 'playing' && (
                   <div className="text-stone-400 mt-1 animate-fadeIn" style={{ fontFamily: "'Inter', sans-serif", fontSize: '8px' }}>
-                    clue
+                    hint
                   </div>
                 )}
               </div>
@@ -452,6 +582,15 @@ ${squares.join('')}
                 HINT
               </button>
             )}
+            {/* Amendment 7: Clue button in game */}
+            {!clueRevealed && (cluesRemaining > 0 || isPremium) && (
+              <button
+                onClick={useClue}
+                className="bg-blue-900 hover:bg-blue-950 text-blue-50 px-6 py-2 text-xs transition-colors"
+              >
+                CLUE
+              </button>
+            )}
           </div>
         )}
 
@@ -470,7 +609,7 @@ ${squares.join('')}
               <div className="text-stone-600 mb-3 text-xs">{puzzle.word}</div>
             )}
             <div className="flex gap-2 justify-center">
-              {/* CHANGE #2: "Continue" → "Next Puzzle" */}
+              {/* Amendment 2: "Next Puzzle" button */}
               <button
                 onClick={nextPuzzle}
                 className="bg-stone-800 text-stone-50 px-8 py-2 text-xs tracking-widest hover:bg-stone-900 transition-colors"
@@ -487,8 +626,14 @@ ${squares.join('')}
           </div>
         )}
 
-        {/* CHANGE #1: "Restart" → "Home" with house icon */}
-        <div className="pt-3 border-t border-stone-200 flex justify-center">
+        {/* Amendment 1: Skip & Home buttons */}
+        <div className="pt-3 border-t border-stone-200 flex justify-center gap-4">
+          <button
+            onClick={nextPuzzle}
+            className="text-stone-600 hover:text-stone-800 flex items-center gap-2 text-xs transition-colors"
+          >
+            <ChevronRight size={14} /> SKIP
+          </button>
           <button
             onClick={goHome}
             className="text-stone-600 hover:text-stone-800 flex items-center gap-2 text-xs transition-colors"
