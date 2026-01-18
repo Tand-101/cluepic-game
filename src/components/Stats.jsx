@@ -1,26 +1,45 @@
 // src/components/Stats.jsx
-import React from 'react';
-import { X, Trophy } from 'lucide-react';
+// Amendments 11, 12, 16 combined
 
-const Stats = ({ score, streak, noirMode, onClose }) => {
+import React from 'react';
+import { X, Trophy, Share2 } from 'lucide-react';
+
+const Stats = ({ 
+  totalScore,
+  currentStreak, 
+  winRate,
+  classicStats,
+  challengeStats,
+  timedStats,
+  noirMode, 
+  onClose 
+}) => {
   const bgColor = noirMode ? 'bg-zinc-900' : 'bg-stone-50';
   const cardBg = noirMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-stone-200';
   const textColor = noirMode ? 'text-zinc-100' : 'text-stone-900';
   const mutedText = noirMode ? 'text-zinc-400' : 'text-stone-600';
 
-  const globalLeaderboard = [
-    { rank: 1, name: 'Alexandra M.', score: 12450 },
-    { rank: 2, name: 'James K.', score: 11890 },
-    { rank: 3, name: 'Sofia L.', score: 11200 },
-    { rank: 4, name: 'Marcus T.', score: 10950 },
-    { rank: 5, name: 'Emma R.', score: 10800 }
-  ];
+  // Amendment 12: Share success rate
+  const shareStats = () => {
+    const shareText = `My Cluepic Stats 📊
+    
+Score: ${totalScore.toLocaleString()}
+Win Rate: ${winRate}%
+Streak: ${currentStreak} days 🔥
 
-  const miniLeague = [
-    { rank: 1, name: 'You', score: score },
-    { rank: 2, name: 'Sarah P.', score: 8200 },
-    { rank: 3, name: 'David C.', score: 7850 }
-  ];
+Classic: ${classicStats.winRate}%
+Challenge: ${challengeStats.winRate}%
+Timed: ${timedStats.winRate}%
+
+Play now at cluepic.co.uk`;
+
+    if (navigator.share) {
+      navigator.share({ text: shareText });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert('Stats copied to clipboard!');
+    }
+  };
 
   return (
     <div className={`min-h-screen ${bgColor} flex items-center justify-center p-4`}>
@@ -29,34 +48,82 @@ const Stats = ({ score, streak, noirMode, onClose }) => {
           <h2 className={`text-2xl font-light ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
             Statistics
           </h2>
-          <button onClick={onClose} className={mutedText}>
-            <X size={20} />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={shareStats} className={mutedText} title="Share Stats">
+              <Share2 size={20} />
+            </button>
+            <button onClick={onClose} className={mutedText}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
         
-        {/* Stats Grid */}
+        {/* Amendment 11: Overall Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className={`${cardBg} border p-4 text-center rounded-lg`}>
             <div className={`text-3xl font-light mb-1 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              {score}
+              {totalScore.toLocaleString()}
             </div>
-            <div className={`text-xs ${mutedText}`}>Score</div>
+            <div className={`text-xs ${mutedText}`}>Total Score</div>
           </div>
           <div className={`${cardBg} border p-4 text-center rounded-lg`}>
             <div className={`text-3xl font-light mb-1 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              {streak}
+              {currentStreak}
             </div>
-            <div className={`text-xs ${mutedText}`}>Streak</div>
+            <div className={`text-xs ${mutedText}`}>Day Streak</div>
           </div>
           <div className={`${cardBg} border p-4 text-center rounded-lg`}>
             <div className={`text-3xl font-light mb-1 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              85%
+              {winRate}%
             </div>
             <div className={`text-xs ${mutedText}`}>Win Rate</div>
           </div>
         </div>
 
-        {/* Global Leaderboard */}
+        {/* Amendment 16: Difficulty Breakdown */}
+        <div className={`${cardBg} border p-4 rounded-lg mb-4`}>
+          <h3 className={`text-sm font-semibold mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            Performance by Difficulty
+          </h3>
+          
+          {/* Classic Stats */}
+          <div className="mb-3 pb-3 border-b border-stone-200">
+            <div className="flex justify-between items-center mb-1">
+              <span className={`text-sm ${textColor}`}>Classic</span>
+              <span className={`text-sm font-semibold ${textColor}`}>{classicStats.winRate}%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className={mutedText}>{classicStats.played} played</span>
+              <span className={mutedText}>{classicStats.score.toLocaleString()} pts</span>
+            </div>
+          </div>
+
+          {/* Challenge Stats */}
+          <div className="mb-3 pb-3 border-b border-stone-200">
+            <div className="flex justify-between items-center mb-1">
+              <span className={`text-sm ${textColor}`}>Challenge</span>
+              <span className={`text-sm font-semibold ${textColor}`}>{challengeStats.winRate}%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className={mutedText}>{challengeStats.played} played</span>
+              <span className={mutedText}>{challengeStats.score.toLocaleString()} pts</span>
+            </div>
+          </div>
+
+          {/* Timed Stats */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <span className={`text-sm ${textColor}`}>Timed</span>
+              <span className={`text-sm font-semibold ${textColor}`}>{timedStats.winRate}%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className={mutedText}>{timedStats.played} played</span>
+              <span className={mutedText}>{timedStats.score.toLocaleString()} pts</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Amendment 11: Global Leaderboard - Coming Soon */}
         <div className={`${cardBg} border p-4 rounded-lg mb-4`}>
           <div className="flex items-center gap-2 mb-3">
             <Trophy size={16} className="text-amber-600" />
@@ -64,38 +131,26 @@ const Stats = ({ score, streak, noirMode, onClose }) => {
               Global Leaderboard
             </h3>
           </div>
-          <div className="space-y-2">
-            {globalLeaderboard.map((player) => (
-              <div key={player.rank} className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className={`text-xs font-semibold ${mutedText} w-4`}>#{player.rank}</div>
-                  <div className={`text-sm ${textColor}`}>{player.name}</div>
-                </div>
-                <div className={`text-sm ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  {player.score.toLocaleString()}
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-8">
+            <div className={`text-sm ${mutedText} mb-2`}>🚀</div>
+            <div className={`text-sm ${textColor} font-semibold mb-1`}>Coming Soon</div>
+            <div className={`text-xs ${mutedText}`}>
+              Compete with players worldwide
+            </div>
           </div>
         </div>
 
-        {/* Mini League */}
+        {/* Amendment 11: Mini League - Coming Soon */}
         <div className={`${cardBg} border p-4 rounded-lg`}>
           <h3 className={`text-sm font-semibold mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
             Your Mini League
           </h3>
-          <div className="space-y-2">
-            {miniLeague.map((player) => (
-              <div key={player.rank} className={`flex justify-between items-center ${player.name === 'You' && 'font-semibold'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`text-xs ${mutedText} w-4`}>#{player.rank}</div>
-                  <div className={`text-sm ${textColor}`}>{player.name}</div>
-                </div>
-                <div className={`text-sm ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  {player.score.toLocaleString()}
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-8">
+            <div className={`text-sm ${mutedText} mb-2`}>👥</div>
+            <div className={`text-sm ${textColor} font-semibold mb-1`}>Coming Soon</div>
+            <div className={`text-xs ${mutedText}`}>
+              Challenge your friends
+            </div>
           </div>
         </div>
       </div>
