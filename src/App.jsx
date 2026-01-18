@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 import HintShop from './components/HintShop';
 import ClueShop from './components/ClueShop';
 import Stats from './components/Stats';
+import { supabase } from './lib/supabase'  // your Supabase client
 
 const CluepicGame = () => {
   // User & Profile State
@@ -67,17 +68,31 @@ const CluepicGame = () => {
 
   // Initialize user on mount
   useEffect(() => {
-    const initUser = async () => {
-      const id = getUserId();
-      setUserId(id);
-      
-      const profile = await getUserProfile(id);
+  const initUser = async () => {
+    // Step 10: Get logged-in Supabase user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return;
+
+    setUserId(user.id);
+
+    // Step 10: Fetch profile from Supabase
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profile) {
       setUserProfile(profile);
       setTotalScore(profile.total_score);
       setCurrentStreak(profile.current_streak);
+      setLongestStreak(profile.longest_streak);
       setHintsRemaining(profile.hints_remaining);
       setCluesRemaining(profile.clues_remaining);
       setIsPremium(profile.is_premium);
+    }
       
       // Update streak
       const newStreak = await updateStreak(id, profile.last_login_date);
@@ -202,7 +217,21 @@ const CluepicGame = () => {
           emptyIndices.push(i);
         }
       }
-      
+ // Step 10: Save puzzle completion to Supabase
+const recordPuzzleCompletion = async ({ puzzleId, difficulty, success, attempts, scoreEarned }) => {
+  if (!userId) return;
+
+  await supabase.from('puzzle_completions').insert([
+    {
+      user_id: userId,
+      puzzle_id: puzzleId,
+      difficulty,
+      success,
+      attempts,
+      score_earned: scoreEarned,
+    },
+  ]);
+};     
       if (emptyIndices.length > 0) {
         const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
         const newCorrectLetters = new Set(correctLetters);
