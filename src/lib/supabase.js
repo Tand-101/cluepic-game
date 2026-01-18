@@ -1,19 +1,25 @@
 // src/lib/supabase.js
+// Amendments 3, 8, 9, 10 combined
 // Supabase configuration for Cluepic
 
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase credentials
 const supabaseUrl = 'https://zmnzitvftqeolrorctmx.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptbnppdHZmdHFlb2xyb3JjdG14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Nzg5MTcsImV4cCI6MjA4NDI1NDkxN30.ciRoqqTwtQW224jBJ2nFvPJPutoX6bii8eKlaV4wjCQ'
 
-// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Fetch all active puzzles with images from Supabase
-export const fetchPuzzles = async () => {
+// Amendment 3: Fetch puzzles by difficulty
+export const fetchPuzzlesByDifficulty = async (difficulty) => {
   try {
-    // Join search_terms with images table
+    const difficultyMap = {
+      'easy': 'Classic',
+      'hard': 'Challenge', 
+      'timed': 'Timed'
+    }
+    
+    const targetDifficulty = difficultyMap[difficulty] || 'Classic'
+    
     const { data, error } = await supabase
       .from('search_terms')
       .select(`
@@ -31,45 +37,160 @@ export const fetchPuzzles = async () => {
         )
       `)
       .eq('active', true)
+      .eq('difficulty', targetDifficulty)
       .order('term', { ascending: true })
 
     if (error) throw error
 
-    // Transform Supabase data to match game format
     const puzzles = data
-      .filter(item => item.images && item.images.length > 0) // Only include terms with images
+      .filter(item => item.images && item.images.length > 0)
       .map(item => {
-        // Use first image from the array
         const image = item.images[0]
-        
         return {
+          id: item.id,
           word: item.term.toUpperCase(),
           image: image.image_url,
           thumbnail: image.thumbnail_url,
           hint: item.clue || 'Guess the word',
           category: item.category,
-          difficulty: item.difficulty || 'Classic',
+          difficulty: item.difficulty,
           photographer: image.photographer,
           photographerUrl: image.photographer_url
         }
       })
 
-    console.log(`Loaded ${puzzles.length} puzzles from Supabase`)
-    return puzzles.length > 0 ? puzzles : getFallbackPuzzles()
-    
+    return puzzles.length > 0 ? puzzles : []
   } catch (error) {
-    console.error('Error fetching puzzles:', error)
-    // Return fallback puzzles if Supabase fails
-    return getFallbackPuzzles()
+    console.error('Error fetching puzzles by difficulty:', error)
+    return []
   }
 }
 
-// Fetch a random daily puzzle
-export const fetchDailyPuzzle = async () => {
+// Amendment 8: Fetch daily puzzles (3 per difficulty)
+export const fetchDailyPuzzles = async () => {
   try {
-    // Get today's date as seed for consistent daily puzzle
     const today = new Date().toISOString().split('T')[0]
     
+    // Fetch 3 puzzles for each difficulty
+    const difficulties = ['Classic', 'Challenge', 'Timed']
+    const dailyPuzzles = {
+      Classic: [],
+      Challenge: [],
+      Timed: []
+    }
+
+    for (const difficulty of difficulties) {
+      const { data, error } = await supabase
+        .from('search_terms')
+        .select(`
+          id,
+          term,
+          category,
+          clue,
+          difficulty,
+          active,
+          images (
+            image_url,
+            thumbnail_url,
+            photographer,
+            photographer_url
+          )
+        `)
+        .eq('active', true)
+        .eq('difficulty', difficulty)
+        .limit(100)
+
+      if (error) throw error
+
+      // Use date as seed to pick 3 consistent daily puzzles
+      const seed = parseInt(today.replace(/-/g, ''))
+      const validPuzzles = data.filter(item => item.images && item.images.length > 0)
+      
+      for (let i = 0; i < 3 && i < validPuzzles.length; i++) {
+        const index = (seed + i) % validPuzzles.length
+        const item = validPuzzles[index]
+        const image = item.images[0]
+        
+        dailyPuzzles[difficulty].push({
+          id: item.id,
+          word: item.term.toUpperCase(),
+          image: image.image_url,
+          thumbnail: image.thumbnail_url,
+          hint: item.clue || 'Guess the word',
+          category: item.category,
+          difficulty: item.difficulty,
+          photographer: image.photographer,
+          photographerUrl: image.photographer_url,
+          date: today
+        })
+      }
+    }
+
+    return dailyPuzzles
+  } catch (error) {
+    console.error('Error fetching daily puzzles:', error)
+    return { Classic: [], Challenge: [], Timed: [] }
+  }
+}
+
+// Check if user completed today's dailies
+export const checkDailyCompletion = (completedPuzzles) => {
+  const today = new Date().toISOString().split('T')[0]
+  const todayCompleted = completedPuzzles.filter(p => p.date === today)
+  
+  return {
+    classicComplete: todayCompleted.filter(p => p.difficulty === 'Classic').length >= 3,
+    challengeComplete: todayCompleted.filter(p => p.difficulty === 'Challenge').length >= 3,
+    timedComplete: todayCompleted.filter(p => p.difficulty === 'Timed').length >= 3,
+    allComplete: todayCompleted.length >= 9
+  }
+}
+
+// Amendment 10: Fetch expansion packs from categories
+export const fetchExpansionPacks = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('search_terms')
+      .select('category')
+      .eq('active', true)
+
+    if (error) throw error
+
+    // Get unique categories
+    const categories = [...new Set(data.map(item => item.category))]
+    
+    // Map categories to expansion packs with emojis
+    const categoryEmojis = {
+      'Animals': '🦁',
+      'Nature': '🌲',
+      'Food': '🍕',
+      'Architecture': '🏛️',
+      'Objects': '🎨',
+      'Sports': '⚽',
+      'Music': '🎵',
+      'Travel': '✈️',
+      'Professions': '👨‍⚕️',
+      'Halloween': '🎃',
+      'Free App Review': '📚'
+    }
+
+    return categories.map(category => ({
+      name: category,
+      price: category === 'Free App Review' ? 'Free with Review' : '£2.99',
+      emoji: categoryEmojis[category] || '📦',
+      locked: category !== 'Free App Review' && category !== 'Food',
+      requiresReview: category === 'Free App Review',
+      category: category
+    }))
+  } catch (error) {
+    console.error('Error fetching expansion packs:', error)
+    return []
+  }
+}
+
+// Fetch puzzles by category
+export const fetchPuzzlesByCategory = async (category) => {
+  try {
     const { data, error } = await supabase
       .from('search_terms')
       .select(`
@@ -78,6 +199,7 @@ export const fetchDailyPuzzle = async () => {
         category,
         clue,
         difficulty,
+        active,
         images (
           image_url,
           thumbnail_url,
@@ -86,78 +208,34 @@ export const fetchDailyPuzzle = async () => {
         )
       `)
       .eq('active', true)
-      .limit(100)
+      .eq('category', category)
+      .order('term', { ascending: true })
 
     if (error) throw error
 
-    // Use date as seed to pick consistent daily puzzle
-    const puzzleIndex = parseInt(today.replace(/-/g, '')) % data.length
-    const item = data[puzzleIndex]
-    
-    if (item.images && item.images.length > 0) {
-      const image = item.images[0]
-      return {
-        word: item.term.toUpperCase(),
-        image: image.image_url,
-        thumbnail: image.thumbnail_url,
-        hint: item.clue || 'Guess the word',
-        category: item.category,
-        difficulty: item.difficulty || 'Classic',
-        photographer: image.photographer,
-        photographerUrl: image.photographer_url
-      }
-    }
-    
-    return null
+    return data
+      .filter(item => item.images && item.images.length > 0)
+      .map(item => {
+        const image = item.images[0]
+        return {
+          id: item.id,
+          word: item.term.toUpperCase(),
+          image: image.image_url,
+          thumbnail: image.thumbnail_url,
+          hint: item.clue || 'Guess the word',
+          category: item.category,
+          difficulty: item.difficulty,
+          photographer: image.photographer,
+          photographerUrl: image.photographer_url
+        }
+      })
   } catch (error) {
-    console.error('Error fetching daily puzzle:', error)
-    return null
+    console.error('Error fetching puzzles by category:', error)
+    return []
   }
 }
 
-// Fallback puzzles if Supabase is unavailable
-const getFallbackPuzzles = () => {
-  console.log('Using fallback puzzles')
-  return [
-    { 
-      word: 'ELEPHANT', 
-      image: 'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&h=600&fit=crop', 
-      hint: 'Large mammal', 
-      category: 'Animals', 
-      difficulty: 'Classic' 
-    },
-    { 
-      word: 'SUNSET', 
-      image: 'https://images.unsplash.com/photo-1495567720989-cebdbdd97913?w=800&h=600&fit=crop', 
-      hint: 'End of day', 
-      category: 'Nature', 
-      difficulty: 'Classic' 
-    },
-    { 
-      word: 'GUITAR', 
-      image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=600&fit=crop', 
-      hint: 'String instrument', 
-      category: 'Objects', 
-      difficulty: 'Classic' 
-    },
-    { 
-      word: 'COFFEE', 
-      image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&h=600&fit=crop', 
-      hint: 'Morning drink', 
-      category: 'Food', 
-      difficulty: 'Classic' 
-    },
-    { 
-      word: 'CASTLE', 
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&h=600&fit=crop', 
-      hint: 'Medieval fortress', 
-      category: 'Architecture', 
-      difficulty: 'Classic' 
-    }
-  ]
-}
-
-// Optional: Track puzzle attempts for analytics
+// Track puzzle attempts for analytics
 export const trackPuzzleAttempt = async (termId, success, attempts) => {
   try {
     const { error } = await supabase
@@ -171,7 +249,6 @@ export const trackPuzzleAttempt = async (termId, success, attempts) => {
 
     if (error) throw error
   } catch (error) {
-    // Silent fail - analytics not critical
     console.error('Error tracking puzzle attempt:', error)
   }
 }
