@@ -1,4 +1,6 @@
 // src/components/Settings.jsx
+// Amendments 14, 18 combined
+
 import React from 'react';
 import { X } from 'lucide-react';
 
@@ -7,7 +9,8 @@ const Settings = ({
   setNoirMode, 
   soundEnabled, 
   setSoundEnabled, 
-  isPremium, 
+  isPremium,
+  onPurchasePremium,
   onClose 
 }) => {
   const bgColor = noirMode ? 'bg-zinc-900' : 'bg-stone-50';
@@ -64,15 +67,44 @@ const Settings = ({
             </div>
           </div>
 
-          {/* Account Settings */}
-          <div className={`${cardBg} border p-4 rounded-lg`}>
-            <h3 className={`text-sm mb-2 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Account
-            </h3>
-            <button className="w-full bg-amber-900 text-amber-50 py-2 text-xs rounded hover:bg-amber-800 transition-colors">
-              Upgrade to Premium - £4.99/mo
-            </button>
-          </div>
+          {/* Amendment 18: Premium Options */}
+          {!isPremium && (
+            <div className={`${cardBg} border p-4 rounded-lg`}>
+              <h3 className={`text-sm mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                Upgrade to Premium
+              </h3>
+              <div className="space-y-2">
+                <button 
+                  onClick={() => onPurchasePremium('monthly')}
+                  className="w-full bg-amber-900 text-amber-50 py-3 text-sm rounded hover:bg-amber-800 transition-colors"
+                >
+                  <div className="font-semibold">£4.99/month</div>
+                  <div className="text-xs opacity-80">Unlimited hints & clues</div>
+                </button>
+                <button 
+                  onClick={() => onPurchasePremium('lifetime')}
+                  className="w-full bg-emerald-900 text-emerald-50 py-3 text-sm rounded hover:bg-emerald-800 transition-colors"
+                >
+                  <div className="font-semibold">£29.99 Lifetime</div>
+                  <div className="text-xs opacity-80">One-time payment • Best value</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isPremium && (
+            <div className={`${cardBg} border p-4 rounded-lg`}>
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
+                <h3 className={`text-sm font-semibold ${textColor}`}>Premium Active</h3>
+              </div>
+              <p className={`text-xs ${mutedText}`}>
+                You have unlimited access to all features
+              </p>
+            </div>
+          )}
 
           {/* About Us */}
           <div className={`${cardBg} border p-4 rounded-lg`}>
@@ -103,6 +135,11 @@ const Settings = ({
               About Us
             </a>
           </div>
+        </div>
+
+        {/* Amendment 14: Thomas Andrews attribution */}
+        <div className={`mt-6 text-center text-xs ${mutedText}`} style={{ fontSize: '10px' }}>
+          Cluepic is a trading name of Thomas Andrews
         </div>
       </div>
     </div>
