@@ -1,5 +1,5 @@
 // src/components/Settings.jsx
-// Amendments 14, 18 combined
+// Amendment 4 - Sound effects disabled
 
 import React from 'react';
 import { X } from 'lucide-react';
@@ -52,22 +52,19 @@ const Settings = ({
                 }`} />
               </button>
             </div>
+            {/* Amendment 4: Sound effects locked */}
             <div className="flex justify-between items-center">
-              <span className={`text-xs ${textColor}`}>Sound Effects</span>
+              <span className={`text-xs ${textColor}`}>Sound Effects (Coming Soon)</span>
               <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`w-10 h-6 rounded-full transition-colors ${
-                  soundEnabled ? 'bg-stone-800' : 'bg-stone-300'
-                }`}
+                className="w-10 h-6 rounded-full transition-colors bg-stone-300 opacity-50 cursor-not-allowed"
+                disabled={true}
               >
-                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                  soundEnabled ? 'translate-x-5' : 'translate-x-1'
-                }`} />
+                <div className="w-4 h-4 bg-white rounded-full transition-transform translate-x-1" />
               </button>
             </div>
           </div>
 
-          {/* Amendment 18: Premium Options */}
+          {/* Premium Options */}
           {!isPremium && (
             <div className={`${cardBg} border p-4 rounded-lg`}>
               <h3 className={`text-sm mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
@@ -137,7 +134,7 @@ const Settings = ({
           </div>
         </div>
 
-        {/* Amendment 14: Thomas Andrews attribution */}
+        {/* Thomas Andrews attribution */}
         <div className={`mt-6 text-center text-xs ${mutedText}`} style={{ fontSize: '10px' }}>
           Cluepic is a trading name of Thomas Andrews
         </div>
