@@ -455,7 +455,7 @@ ${squares.join('')}
     alert(`Premium ${type} purchase coming soon!`);
   };
          
-/ Show different screens
+// Show different screens
   if (showSettings) {
     return (
       <Settings
