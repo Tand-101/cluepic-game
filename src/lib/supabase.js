@@ -1,6 +1,5 @@
 // src/lib/supabase.js
-// Amendments 3, 8, 9, 10 combined
-// Supabase configuration for Cluepic
+// Amendment 3: Daily puzzles from "Daily" category with archive system
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -9,7 +8,20 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Amendment 3: Fetch puzzles by difficulty
+// Amendment 1: Add image sizing parameters to Unsplash URLs
+const formatImageUrl = (url) => {
+  if (!url) return url;
+  
+  // If it's an Unsplash URL, add size parameters
+  if (url.includes('unsplash.com')) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}w=800&h=600&fit=crop`;
+  }
+  
+  return url;
+};
+
+// Fetch puzzles by difficulty (for regular gameplay)
 export const fetchPuzzlesByDifficulty = async (difficulty) => {
   try {
     const difficultyMap = {
@@ -38,6 +50,7 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
       `)
       .eq('active', true)
       .eq('difficulty', targetDifficulty)
+      .neq('category', 'Daily') // Exclude daily category from regular play
       .order('term', { ascending: true })
 
     if (error) throw error
@@ -49,8 +62,8 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
         return {
           id: item.id,
           word: item.term.toUpperCase(),
-          image: image.image_url,
-          thumbnail: image.thumbnail_url,
+          image: formatImageUrl(image.image_url),
+          thumbnail: formatImageUrl(image.thumbnail_url),
           hint: item.clue || 'Guess the word',
           category: item.category,
           difficulty: item.difficulty,
@@ -66,56 +79,49 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
   }
 }
 
-// Amendment 8: Fetch daily puzzles (3 per difficulty)
+// Amendment 3: Fetch today's daily puzzles (3x Classic, 3x Challenge, 3x Timed from "Daily" category)
 export const fetchDailyPuzzles = async () => {
   try {
     const today = new Date().toISOString().split('T')[0]
     
-    // Fetch 3 puzzles for each difficulty
-    const difficulties = ['Classic', 'Challenge', 'Timed']
-    const dailyPuzzles = {
+    // Fetch ALL puzzles from the "Daily" category
+    const { data, error } = await supabase
+      .from('search_terms')
+      .select(`
+        id,
+        term,
+        category,
+        clue,
+        difficulty,
+        active,
+        images (
+          image_url,
+          thumbnail_url,
+          photographer,
+          photographer_url
+        )
+      `)
+      .eq('active', true)
+      .eq('category', 'Daily')
+      .order('id', { ascending: true })
+
+    if (error) throw error
+
+    // Separate by difficulty
+    const byDifficulty = {
       Classic: [],
       Challenge: [],
       Timed: []
     }
 
-    for (const difficulty of difficulties) {
-      const { data, error } = await supabase
-        .from('search_terms')
-        .select(`
-          id,
-          term,
-          category,
-          clue,
-          difficulty,
-          active,
-          images (
-            image_url,
-            thumbnail_url,
-            photographer,
-            photographer_url
-          )
-        `)
-        .eq('active', true)
-        .eq('difficulty', difficulty)
-        .limit(100)
-
-      if (error) throw error
-
-      // Use date as seed to pick 3 consistent daily puzzles
-      const seed = parseInt(today.replace(/-/g, ''))
-      const validPuzzles = data.filter(item => item.images && item.images.length > 0)
-      
-      for (let i = 0; i < 3 && i < validPuzzles.length; i++) {
-        const index = (seed + i) % validPuzzles.length
-        const item = validPuzzles[index]
+    data.forEach(item => {
+      if (item.images && item.images.length > 0 && byDifficulty[item.difficulty]) {
         const image = item.images[0]
-        
-        dailyPuzzles[difficulty].push({
+        byDifficulty[item.difficulty].push({
           id: item.id,
           word: item.term.toUpperCase(),
-          image: image.image_url,
-          thumbnail: image.thumbnail_url,
+          image: formatImageUrl(image.image_url),
+          thumbnail: formatImageUrl(image.thumbnail_url),
           hint: item.clue || 'Guess the word',
           category: item.category,
           difficulty: item.difficulty,
@@ -124,12 +130,100 @@ export const fetchDailyPuzzles = async () => {
           date: today
         })
       }
+    })
+
+    // Use date as seed to select 3 puzzles per difficulty
+    const seed = parseInt(today.replace(/-/g, ''))
+    const dailyPuzzles = {
+      Classic: [],
+      Challenge: [],
+      Timed: []
     }
+
+    // Select 3 puzzles for each difficulty using deterministic rotation
+    Object.keys(byDifficulty).forEach(difficulty => {
+      const available = byDifficulty[difficulty]
+      if (available.length > 0) {
+        for (let i = 0; i < 3; i++) {
+          const index = (seed + i) % available.length
+          dailyPuzzles[difficulty].push(available[index])
+        }
+      }
+    })
 
     return dailyPuzzles
   } catch (error) {
     console.error('Error fetching daily puzzles:', error)
     return { Classic: [], Challenge: [], Timed: [] }
+  }
+}
+
+// Amendment 3: Fetch archive puzzles (previous days' dailies)
+export const fetchArchivePuzzles = async (hasArchiveAccess) => {
+  if (!hasArchiveAccess) {
+    return { available: false, puzzles: [] }
+  }
+
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Get all Daily category puzzles
+    const { data, error } = await supabase
+      .from('search_terms')
+      .select(`
+        id,
+        term,
+        category,
+        clue,
+        difficulty,
+        active,
+        images (
+          image_url,
+          thumbnail_url,
+          photographer,
+          photographer_url
+        )
+      `)
+      .eq('active', true)
+      .eq('category', 'Daily')
+      .order('difficulty', { ascending: true })
+
+    if (error) throw error
+
+    // Get current day's puzzle IDs to exclude them
+    const todaysPuzzles = await fetchDailyPuzzles()
+    const todaysPuzzleIds = new Set([
+      ...todaysPuzzles.Classic.map(p => p.id),
+      ...todaysPuzzles.Challenge.map(p => p.id),
+      ...todaysPuzzles.Timed.map(p => p.id)
+    ])
+
+    // Map all puzzles except today's
+    const archivePuzzles = data
+      .filter(item => item.images && item.images.length > 0 && !todaysPuzzleIds.has(item.id))
+      .map(item => {
+        const image = item.images[0]
+        return {
+          id: item.id,
+          word: item.term.toUpperCase(),
+          image: formatImageUrl(image.image_url),
+          thumbnail: formatImageUrl(image.thumbnail_url),
+          hint: item.clue || 'Guess the word',
+          category: 'Daily Archive',
+          difficulty: item.difficulty,
+          photographer: image.photographer,
+          photographerUrl: image.photographer_url
+        }
+      })
+
+    return {
+      available: true,
+      puzzles: archivePuzzles,
+      count: archivePuzzles.length
+    }
+  } catch (error) {
+    console.error('Error fetching archive puzzles:', error)
+    return { available: false, puzzles: [] }
   }
 }
 
@@ -146,13 +240,14 @@ export const checkDailyCompletion = (completedPuzzles) => {
   }
 }
 
-// Amendment 10: Fetch expansion packs from categories
+// Fetch expansion packs from categories (exclude Daily category)
 export const fetchExpansionPacks = async () => {
   try {
     const { data, error } = await supabase
       .from('search_terms')
       .select('category')
       .eq('active', true)
+      .neq('category', 'Daily') // Exclude Daily from expansion packs
 
     if (error) throw error
 
@@ -188,7 +283,7 @@ export const fetchExpansionPacks = async () => {
   }
 }
 
-// Fetch puzzles by category
+// Fetch puzzles by category (Amendment 2: Ensure proper distribution)
 export const fetchPuzzlesByCategory = async (category) => {
   try {
     const { data, error } = await supabase
@@ -209,6 +304,7 @@ export const fetchPuzzlesByCategory = async (category) => {
       `)
       .eq('active', true)
       .eq('category', category)
+      .order('difficulty', { ascending: true })
       .order('term', { ascending: true })
 
     if (error) throw error
@@ -220,8 +316,8 @@ export const fetchPuzzlesByCategory = async (category) => {
         return {
           id: item.id,
           word: item.term.toUpperCase(),
-          image: image.image_url,
-          thumbnail: image.thumbnail_url,
+          image: formatImageUrl(image.image_url),
+          thumbnail: formatImageUrl(image.thumbnail_url),
           hint: item.clue || 'Guess the word',
           category: item.category,
           difficulty: item.difficulty,
