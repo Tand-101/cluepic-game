@@ -1,4 +1,4 @@
-/ src/components/DifficultySelect.jsx
+// src/components/DifficultySelect.jsx
 // Amendments 1 & 2: Fixed image cropping and expansion content scrolling
 
 import React from 'react';
