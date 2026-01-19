@@ -1,5 +1,5 @@
 // src/components/DifficultySelect.jsx
-// Amendments 2, 15 combined
+// Amendments 1, 2 - Fixed expansion packs display and logo removed
 
 import React from 'react';
 import { BarChart3, Settings } from 'lucide-react';
@@ -11,23 +11,29 @@ const DifficultySelect = ({
   setShowStats, 
   setShowSettings 
 }) => {
+  // Amendment 1: Default expansion packs if none provided
+  const defaultExpansionPacks = [
+    { name: 'Free App Review', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true },
+    { name: 'Food', price: '£2.99', emoji: '🍕', locked: false, requiresReview: false },
+    { name: 'Halloween', price: '£2.99', emoji: '🎃', locked: true, requiresReview: false },
+    { name: 'Animals', price: '£2.99', emoji: '🦁', locked: true, requiresReview: false },
+    { name: 'Professions', price: '£2.99', emoji: '👨‍⚕️', locked: true, requiresReview: false },
+    { name: 'Travel', price: '£2.99', emoji: '✈️', locked: true, requiresReview: false },
+    { name: 'Sports', price: '£2.99', emoji: '⚽', locked: true, requiresReview: false },
+    { name: 'Nature', price: '£2.99', emoji: '🌲', locked: true, requiresReview: false },
+    { name: 'Music', price: '£2.99', emoji: '🎵', locked: true, requiresReview: false }
+  ];
+
+  const packs = expansionPacks && expansionPacks.length > 0 ? expansionPacks : defaultExpansionPacks;
+
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Amendment 2: Removed logo, centered title */}
         <div className="flex justify-between items-center mb-4">
-          {/* Amendment 2: Cluepic logo top left */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-stone-50 flex items-center justify-center">
-              <img 
-                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='70' font-size='80' text-anchor='middle' font-family='Cormorant Garamond, serif' font-weight='300'%3Eĉ%3C/text%3E%3C/svg%3E"
-                alt="Cluepic Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="text-center">
-              <h1 className="text-4xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CLUEPIC</h1>
-              <div className="w-12 h-px bg-stone-400 mx-auto" />
-            </div>
+          <div className="flex-1 text-center">
+            <h1 className="text-4xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CLUEPIC</h1>
+            <div className="w-12 h-px bg-stone-400 mx-auto" />
           </div>
           
           <div className="flex gap-2">
@@ -40,7 +46,7 @@ const DifficultySelect = ({
           </div>
         </div>
 
-        {/* Amendment 15: Streak matched to Stats logic */}
+        {/* Streak */}
         <div className="flex justify-center items-center gap-3 mb-4">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-9 h-9 text-amber-700" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -55,6 +61,7 @@ const DifficultySelect = ({
           </div>
         </div>
 
+        {/* Difficulty Selection */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="h-px bg-stone-300 flex-1" />
@@ -101,14 +108,14 @@ const DifficultySelect = ({
           </div>
         </div>
 
-        {/* Your Collection */}
-        {expansionPacks.filter(pack => !pack.locked).length > 0 && (
+        {/* Amendment 1: Your Collection */}
+        {packs.filter(pack => !pack.locked).length > 0 && (
           <div className="mb-4 bg-stone-100 border border-stone-200 p-3 rounded">
             <h3 className="text-xs text-stone-600 mb-2 tracking-wider text-center" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', letterSpacing: '0.1em' }}>
               YOUR COLLECTION
             </h3>
             <div className="flex flex-wrap gap-2 justify-center">
-              {expansionPacks.filter(pack => !pack.locked).map((pack, index) => (
+              {packs.filter(pack => !pack.locked).map((pack, index) => (
                 <button
                   key={index}
                   className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative"
@@ -119,7 +126,7 @@ const DifficultySelect = ({
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                  <div className="text-lg mb-1 grayscale">{pack.emoji}</div>
+                  <div className="text-lg mb-1">{pack.emoji}</div>
                   <div className="text-xs tracking-wider mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                     {pack.name}
                   </div>
@@ -127,7 +134,7 @@ const DifficultySelect = ({
                     <div className="bg-emerald-700 h-1 rounded-full transition-all" style={{ width: '33%' }} />
                   </div>
                   <div className="text-xs text-stone-500" style={{ fontFamily: "'Inter', sans-serif", fontSize: '8px' }}>
-                    Progress
+                    50 / 150
                   </div>
                 </button>
               ))}
@@ -135,7 +142,7 @@ const DifficultySelect = ({
           </div>
         )}
 
-        {/* Expansion Content */}
+        {/* Amendment 1: Expansion Content */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="h-px bg-stone-300 flex-1" />
@@ -147,7 +154,7 @@ const DifficultySelect = ({
           
           <div className="overflow-x-auto -mx-4 px-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d6d3d1 transparent' }}>
             <div className="flex gap-2 pb-1" style={{ width: 'fit-content' }}>
-              {expansionPacks.filter(pack => pack.locked).map((pack, index) => (
+              {packs.filter(pack => pack.locked).map((pack, index) => (
                 <button
                   key={index}
                   className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative"
@@ -162,6 +169,9 @@ const DifficultySelect = ({
                   <div className="text-xl mb-1 grayscale">{pack.emoji}</div>
                   <div className="text-xs mb-1 tracking-wider" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                     {pack.name}
+                  </div>
+                  <div className="text-xs text-stone-500" style={{ fontFamily: "'Inter', sans-serif", fontSize: '8px' }}>
+                    150× puzzles
                   </div>
                   <div className="text-xs font-medium text-stone-700 tracking-wider mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
                     {pack.price}
