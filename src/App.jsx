@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, Share2, ChevronRight } from 'lucide-react';
-import { fetchPuzzlesByDifficulty, fetchDailyPuzzles } from './lib/supabase';
+import { fetchPuzzlesByDifficulty, fetchDailyPuzzles, fetchArchivePuzzles } from './lib/supabase';
 import { getUserId, getUserProfile, updateStreak, recordPuzzleCompletion, 
          getUserStatistics, updateHintsClues } from './lib/storage';
 import { getEffectType, applyImageEffect } from './utils/imageEffects';
@@ -9,7 +9,7 @@ import Settings from './components/Settings';
 import HintShop from './components/HintShop';
 import ClueShop from './components/ClueShop';
 import Stats from './components/Stats';
-import { supabase } from './lib/supabase'  // your Supabase client
+import { supabase } from './lib/supabase';
 
 const CluepicGame = () => {
   // User & Profile State
@@ -53,6 +53,12 @@ const CluepicGame = () => {
   const [shakeEffect, setShakeEffect] = useState(false);
   const [celebrateEffect, setCelebrateEffect] = useState(false);
   
+  // Archive State - NEW
+  const [hasArchiveAccess, setHasArchiveAccess] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [archivePuzzles, setArchivePuzzles] = useState([]);
+  const [isPlayingArchive, setIsPlayingArchive] = useState(false);
+  
   // Stats - Amendment 11, 16
   const [userStats, setUserStats] = useState({
     total: { played: 0, won: 0, score: 0, winRate: 0 },
@@ -66,45 +72,40 @@ const CluepicGame = () => {
   
   const puzzle = puzzles[currentPuzzle];
 
-  // Initialize user on mount
+// Initialize user on mount - UPDATED
   useEffect(() => {
-  const initUser = async () => {
-    // Step 10: Get logged-in Supabase user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return;
+    const initUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    setUserId(user.id);
+      setUserId(user.id);
 
-    // Step 10: Fetch profile from Supabase
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-    if (profile) {
-      setUserProfile(profile);
-      setTotalScore(profile.total_score);
-      setCurrentStreak(profile.current_streak);
-      setLongestStreak(profile.longest_streak);
-      setHintsRemaining(profile.hints_remaining);
-      setCluesRemaining(profile.clues_remaining);
-      setIsPremium(profile.is_premium);
-    }
-      
-      // Update streak
-      const newStreak = await updateStreak(id, profile.last_login_date);
-      setCurrentStreak(newStreak);
-      
-      // Load stats
-      const stats = await getUserStatistics(id);
-      setUserStats(stats);
-      
-      // Load daily puzzles - Amendment 8
-      const dailies = await fetchDailyPuzzles();
-      setDailyPuzzles(dailies);
+      if (profile) {
+        setUserProfile(profile);
+        setTotalScore(profile.total_score);
+        setCurrentStreak(profile.current_streak);
+        setHintsRemaining(profile.hints_remaining);
+        setCluesRemaining(profile.clues_remaining);
+        setIsPremium(profile.is_premium);
+        setHasArchiveAccess(profile.has_archive_access || false);
+        
+        const newStreak = await updateStreak(user.id, profile.last_login_date);
+        setCurrentStreak(newStreak);
+        
+        const stats = await getUserStatistics(user.id);
+        setUserStats(stats);
+        
+        const dailies = await fetchDailyPuzzles();
+        setDailyPuzzles(dailies);
+      }
     };
     
     initUser();
@@ -119,7 +120,6 @@ const CluepicGame = () => {
         
         if (fetchedPuzzles.length > 0) {
           setUserInput(Array(fetchedPuzzles[0].word.length).fill(''));
-          // Amendment 5: Set effect type based on puzzle ID
           setEffectType(getEffectType(fetchedPuzzles[0].id));
         }
       }
@@ -194,7 +194,73 @@ const CluepicGame = () => {
     }
   };
 
-  // Amendment 7: Use clue
+  // Archive Functions - NEW
+  const handleArchiveClick = async () => {
+    if (hasArchiveAccess) {
+      const archive = await fetchArchivePuzzles(true);
+      if (archive.available) {
+        setArchivePuzzles(archive.puzzles);
+        setShowArchive(true);
+      }
+    } else {
+      const confirmed = window.confirm(
+        'Unlock the Archive to access all previous daily puzzles!\n\n' +
+        'One-time purchase: £9.99\n\n' +
+        'Click OK to purchase.'
+      );
+      
+      if (confirmed) {
+        await handlePurchaseArchive();
+      }
+    }
+  };
+
+  const handlePurchaseArchive = async () => {
+    if (!userId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ has_archive_access: true })
+        .eq('user_id', userId);
+      
+      if (!error) {
+        setHasArchiveAccess(true);
+        alert('Archive unlocked! You now have access to all previous daily puzzles.');
+        
+        const archive = await fetchArchivePuzzles(true);
+        if (archive.available) {
+          setArchivePuzzles(archive.puzzles);
+          setShowArchive(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error purchasing archive:', error);
+      alert('Purchase failed. Please try again.');
+    }
+  };
+
+  const startArchiveGame = (difficulty) => {
+    const filtered = archivePuzzles.filter(p => 
+      p.difficulty === (difficulty === 'easy' ? 'Classic' : difficulty === 'hard' ? 'Challenge' : 'Timed')
+    );
+    
+    if (filtered.length > 0) {
+      setPuzzles(filtered);
+      setDifficulty(difficulty);
+      setShowArchive(false);
+      setIsPlayingArchive(true);
+      if (difficulty === 'timed') {
+        setTimerActive(true);
+      }
+    }
+  };
+
+  const closeArchive = () => {
+    setShowArchive(false);
+  };
+
+// Amendment 7: Use clue
   const useClue = () => {
     if (cluesRemaining > 0 || isPremium) {
       setClueRevealed(true);
@@ -217,21 +283,7 @@ const CluepicGame = () => {
           emptyIndices.push(i);
         }
       }
- // Step 10: Save puzzle completion to Supabase
-const recordPuzzleCompletion = async ({ puzzleId, difficulty, success, attempts, scoreEarned }) => {
-  if (!userId) return;
-
-  await supabase.from('puzzle_completions').insert([
-    {
-      user_id: userId,
-      puzzle_id: puzzleId,
-      difficulty,
-      success,
-      attempts,
-      score_earned: scoreEarned,
-    },
-  ]);
-};     
+      
       if (emptyIndices.length > 0) {
         const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
         const newCorrectLetters = new Set(correctLetters);
@@ -293,7 +345,7 @@ ${squares.join('')}
     }
   };
 
-  const checkGuess = () => {
+  const checkGuess = async () => {
     if (!puzzle) return;
     const guessedWord = userInput.join('');
     
@@ -305,15 +357,17 @@ ${squares.join('')}
       setCelebrateEffect(true);
       setTimeout(() => setCelebrateEffect(false), 2000);
       
-      // Record completion
       if (userId) {
-        recordPuzzleCompletion(userId, {
-          puzzleId: puzzle.id,
-          difficulty: puzzle.difficulty,
-          success: true,
-          attempts: attempts + 1,
-          scoreEarned: pointsEarned
-        });
+        await supabase.from('puzzle_completions').insert([
+          {
+            user_id: userId,
+            puzzle_id: puzzle.id,
+            difficulty: puzzle.difficulty,
+            success: true,
+            attempts: attempts + 1,
+            score_earned: pointsEarned,
+          },
+        ]);
       }
     } else {
       setShakeEffect(true);
@@ -321,7 +375,6 @@ ${squares.join('')}
 
       const newCorrectLetters = new Set(correctLetters);
       
-      // Amendment 6: Hints populate from attempt 1 if correct
       for (let i = 0; i < userInput.length; i++) {
         if (userInput[i] === puzzle.word[i]) {
           newCorrectLetters.add(i);
@@ -336,15 +389,17 @@ ${squares.join('')}
         setGameState('lost');
         setTimerActive(false);
         
-        // Record failed attempt
         if (userId) {
-          recordPuzzleCompletion(userId, {
-            puzzleId: puzzle.id,
-            difficulty: puzzle.difficulty,
-            success: false,
-            attempts: newAttempts,
-            scoreEarned: 0
-          });
+          await supabase.from('puzzle_completions').insert([
+            {
+              user_id: userId,
+              puzzle_id: puzzle.id,
+              difficulty: puzzle.difficulty,
+              success: false,
+              attempts: newAttempts,
+              score_earned: 0,
+            },
+          ]);
         }
       } else {
         const resetInput = Array(puzzle.word.length).fill('');
@@ -366,7 +421,6 @@ ${squares.join('')}
     }
   };
 
-  // Amendment 3: Independent puzzles - reset all state
   const nextPuzzle = () => {
     const newPuzzleIndex = currentPuzzle < puzzles.length - 1 ? currentPuzzle + 1 : 0;
     setCurrentPuzzle(newPuzzleIndex);
@@ -388,6 +442,7 @@ ${squares.join('')}
     setGameState('playing');
     setTimerActive(false);
     setClueRevealed(false);
+    setIsPlayingArchive(false);
   };
 
   const formatTime = (seconds) => {
@@ -396,13 +451,11 @@ ${squares.join('')}
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Amendment 18: Purchase premium
   const handlePurchasePremium = (type) => {
-    // TODO: Implement actual in-app purchase
     alert(`Premium ${type} purchase coming soon!`);
   };
-
-  // Show different screens
+         
+/ Show different screens
   if (showSettings) {
     return (
       <Settings
@@ -427,7 +480,6 @@ ${squares.join('')}
     );
   }
 
-  // Amendment 7: Clue shop
   if (showClueShop) {
     return (
       <ClueShop
@@ -459,9 +511,86 @@ ${squares.join('')}
         currentStreak={currentStreak}
         expansionPacks={[]}
         startGame={startGame}
+        onArchiveClick={handleArchiveClick}
+        hasArchiveAccess={hasArchiveAccess}
         setShowStats={setShowStats}
         setShowSettings={setShowSettings}
       />
+    );
+  }
+
+  // Archive View - NEW
+  if (showArchive) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              DAILY ARCHIVE
+            </h1>
+            <button 
+              onClick={closeArchive}
+              className="text-stone-600 hover:text-stone-800"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="mb-4 text-center">
+            <p className="text-stone-600 text-sm mb-4">
+              Play previous daily puzzles anytime
+            </p>
+            <div className="text-xs text-stone-500 mb-4">
+              {archivePuzzles.length} puzzles available
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button
+              onClick={() => startArchiveGame('easy')}
+              className="bg-stone-900 hover:bg-black text-stone-50 py-4 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
+            >
+              <div className="text-xs tracking-wider mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                CLASSIC
+              </div>
+              <div className="text-xs text-stone-400">
+                {archivePuzzles.filter(p => p.difficulty === 'Classic').length} puzzles
+              </div>
+            </button>
+            
+            <button
+              onClick={() => startArchiveGame('hard')}
+              className="bg-stone-400 hover:bg-stone-500 text-stone-50 py-4 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
+            >
+              <div className="text-xs tracking-wider mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                CHALLENGE
+              </div>
+              <div className="text-xs text-stone-300">
+                {archivePuzzles.filter(p => p.difficulty === 'Challenge').length} puzzles
+              </div>
+            </button>
+
+            <button
+              onClick={() => startArchiveGame('timed')}
+              className="bg-white hover:bg-stone-50 text-stone-800 py-4 px-2 border border-stone-300 flex flex-col items-center justify-center gap-1 transition-colors"
+            >
+              <div className="text-xs tracking-wider mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                TIMED
+              </div>
+              <div className="text-xs text-stone-500">
+                {archivePuzzles.filter(p => p.difficulty === 'Timed').length} puzzles
+              </div>
+            </button>
+          </div>
+
+          <button
+            onClick={closeArchive}
+            className="w-full bg-stone-800 text-stone-50 py-2 text-xs tracking-widest hover:bg-stone-900 transition-colors"
+          >
+            BACK TO HOME
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -474,7 +603,7 @@ ${squares.join('')}
     );
   }
 
-  // Main game screen
+         // Main game screen
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <style>{`
@@ -502,6 +631,7 @@ ${squares.join('')}
             <h1 className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CLUEPIC</h1>
             <p className="text-xs text-stone-500" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px' }}>
               {currentPuzzle + 1}/{puzzles.length} · {difficulty === 'easy' ? 'Classic' : difficulty === 'timed' ? 'Timed' : 'Challenge'}
+              {isPlayingArchive && ' · Archive'}
             </p>
           </div>
           <div className="flex gap-3 items-center">
@@ -510,7 +640,6 @@ ${squares.join('')}
                 {formatTime(timeRemaining)}
               </div>
             )}
-            {/* Amendment 7: Clue button */}
             <button 
               onClick={() => setShowClueShop(true)}
               className="bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors"
@@ -532,7 +661,7 @@ ${squares.join('')}
           </div>
         </div>
 
-        {/* Amendment 5: Image with effects */}
+        {/* Image with effects */}
         <div className={`mb-4 ${shakeEffect ? 'shake' : ''}`}>
           <div className="relative bg-stone-200 overflow-hidden rounded" style={{ paddingBottom: '75%', filter: noirMode ? 'grayscale(100%)' : 'none' }}>
             {!imageLoaded && (
@@ -559,7 +688,7 @@ ${squares.join('')}
           </div>
         </div>
 
-        {/* Amendment 7: Show hint if clue revealed or after attempt 3 */}
+        {/* Clue display */}
         {gameState === 'playing' && (clueRevealed || attempts >= 2) && (
           <div className="mb-3 text-center animate-fadeIn">
             <p className="text-stone-600 text-xs">{puzzle.hint}</p>
@@ -611,7 +740,6 @@ ${squares.join('')}
                 HINT
               </button>
             )}
-            {/* Amendment 7: Clue button in game */}
             {!clueRevealed && (cluesRemaining > 0 || isPremium) && (
               <button
                 onClick={useClue}
@@ -638,7 +766,6 @@ ${squares.join('')}
               <div className="text-stone-600 mb-3 text-xs">{puzzle.word}</div>
             )}
             <div className="flex gap-2 justify-center">
-              {/* Amendment 2: "Next Puzzle" button */}
               <button
                 onClick={nextPuzzle}
                 className="bg-stone-800 text-stone-50 px-8 py-2 text-xs tracking-widest hover:bg-stone-900 transition-colors"
@@ -655,7 +782,7 @@ ${squares.join('')}
           </div>
         )}
 
-        {/* Amendment 1: Skip & Home buttons */}
+        {/* Skip & Home buttons */}
         <div className="pt-3 border-t border-stone-200 flex justify-center gap-4">
           <button
             onClick={nextPuzzle}
