@@ -1,5 +1,5 @@
-// src/components/DifficultySelect.jsx
-// Amendments 1, 2 - Fixed expansion packs display and logo removed
+/ src/components/DifficultySelect.jsx
+// Amendments 1 & 2: Fixed image cropping and expansion content scrolling
 
 import React from 'react';
 import { BarChart3, Settings } from 'lucide-react';
@@ -11,7 +11,6 @@ const DifficultySelect = ({
   setShowStats, 
   setShowSettings 
 }) => {
-  // Amendment 1: Default expansion packs if none provided
   const defaultExpansionPacks = [
     { name: 'Free App Review', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true },
     { name: 'Food', price: '£2.99', emoji: '🍕', locked: false, requiresReview: false },
@@ -29,7 +28,6 @@ const DifficultySelect = ({
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Amendment 2: Removed logo, centered title */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex-1 text-center">
             <h1 className="text-4xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CLUEPIC</h1>
@@ -46,7 +44,6 @@ const DifficultySelect = ({
           </div>
         </div>
 
-        {/* Streak */}
         <div className="flex justify-center items-center gap-3 mb-4">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-9 h-9 text-amber-700" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -61,7 +58,6 @@ const DifficultySelect = ({
           </div>
         </div>
 
-        {/* Difficulty Selection */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="h-px bg-stone-300 flex-1" />
@@ -108,7 +104,7 @@ const DifficultySelect = ({
           </div>
         </div>
 
-        {/* Amendment 1: Your Collection */}
+        {/* Your Collection */}
         {packs.filter(pack => !pack.locked).length > 0 && (
           <div className="mb-4 bg-stone-100 border border-stone-200 p-3 rounded">
             <h3 className="text-xs text-stone-600 mb-2 tracking-wider text-center" style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', letterSpacing: '0.1em' }}>
@@ -142,7 +138,7 @@ const DifficultySelect = ({
           </div>
         )}
 
-        {/* Amendment 1: Expansion Content */}
+        {/* Amendment 2: Expansion Content - Show 3.5 tiles with visible scrollbar */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="h-px bg-stone-300 flex-1" />
@@ -152,13 +148,40 @@ const DifficultySelect = ({
             <div className="h-px bg-stone-300 flex-1" />
           </div>
           
-          <div className="overflow-x-auto -mx-4 px-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d6d3d1 transparent' }}>
-            <div className="flex gap-2 pb-1" style={{ width: 'fit-content' }}>
+          {/* Amendment 2: Container shows 3.5 tiles, scrollbar always visible */}
+          <div 
+            className="overflow-x-scroll -mx-4 px-4" 
+            style={{ 
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#a8a29e #f5f5f4',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            <style>{`
+              /* Always show scrollbar */
+              .overflow-x-scroll::-webkit-scrollbar {
+                height: 8px;
+                display: block;
+              }
+              .overflow-x-scroll::-webkit-scrollbar-track {
+                background: #f5f5f4;
+                border-radius: 4px;
+              }
+              .overflow-x-scroll::-webkit-scrollbar-thumb {
+                background: #a8a29e;
+                border-radius: 4px;
+              }
+              .overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+                background: #78716c;
+              }
+            `}</style>
+            {/* Show exactly 3.5 tiles by setting container width */}
+            <div className="flex gap-2 pb-2" style={{ width: 'max-content' }}>
               {packs.filter(pack => pack.locked).map((pack, index) => (
                 <button
                   key={index}
-                  className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative"
-                  style={{ minWidth: '110px', maxWidth: '110px' }}
+                  className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative flex-shrink-0"
+                  style={{ width: 'calc((100vw - 4rem) / 3.5)', minWidth: '100px', maxWidth: '110px' }}
                 >
                   <div className="absolute top-1 right-1">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3 text-stone-400">
