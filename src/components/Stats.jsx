@@ -1,5 +1,5 @@
 // src/components/Stats.jsx
-// Amendments 11, 12, 16 combined
+// Amendment 3 - Greyscale coming soon icons
 
 import React from 'react';
 import { X, Trophy, Share2 } from 'lucide-react';
@@ -19,7 +19,6 @@ const Stats = ({
   const textColor = noirMode ? 'text-zinc-100' : 'text-stone-900';
   const mutedText = noirMode ? 'text-zinc-400' : 'text-stone-600';
 
-  // Amendment 12: Share success rate
   const shareStats = () => {
     const shareText = `My Cluepic Stats 📊
     
@@ -58,7 +57,7 @@ Play now at cluepic.co.uk`;
           </div>
         </div>
         
-        {/* Amendment 11: Overall Stats Grid */}
+        {/* Overall Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className={`${cardBg} border p-4 text-center rounded-lg`}>
             <div className={`text-3xl font-light mb-1 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
@@ -80,13 +79,12 @@ Play now at cluepic.co.uk`;
           </div>
         </div>
 
-        {/* Amendment 16: Difficulty Breakdown */}
+        {/* Difficulty Breakdown */}
         <div className={`${cardBg} border p-4 rounded-lg mb-4`}>
           <h3 className={`text-sm font-semibold mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
             Performance by Difficulty
           </h3>
           
-          {/* Classic Stats */}
           <div className="mb-3 pb-3 border-b border-stone-200">
             <div className="flex justify-between items-center mb-1">
               <span className={`text-sm ${textColor}`}>Classic</span>
@@ -98,7 +96,6 @@ Play now at cluepic.co.uk`;
             </div>
           </div>
 
-          {/* Challenge Stats */}
           <div className="mb-3 pb-3 border-b border-stone-200">
             <div className="flex justify-between items-center mb-1">
               <span className={`text-sm ${textColor}`}>Challenge</span>
@@ -110,7 +107,6 @@ Play now at cluepic.co.uk`;
             </div>
           </div>
 
-          {/* Timed Stats */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className={`text-sm ${textColor}`}>Timed</span>
@@ -123,16 +119,16 @@ Play now at cluepic.co.uk`;
           </div>
         </div>
 
-        {/* Amendment 11: Global Leaderboard - Coming Soon */}
+        {/* Amendment 3: Global Leaderboard - Greyscale icons */}
         <div className={`${cardBg} border p-4 rounded-lg mb-4`}>
           <div className="flex items-center gap-2 mb-3">
-            <Trophy size={16} className="text-amber-600" />
+            <Trophy size={16} className="text-stone-400 grayscale" />
             <h3 className={`text-sm font-semibold ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               Global Leaderboard
             </h3>
           </div>
           <div className="text-center py-8">
-            <div className={`text-sm ${mutedText} mb-2`}>🚀</div>
+            <div className="text-4xl mb-2 grayscale opacity-40">🚀</div>
             <div className={`text-sm ${textColor} font-semibold mb-1`}>Coming Soon</div>
             <div className={`text-xs ${mutedText}`}>
               Compete with players worldwide
@@ -140,13 +136,13 @@ Play now at cluepic.co.uk`;
           </div>
         </div>
 
-        {/* Amendment 11: Mini League - Coming Soon */}
+        {/* Amendment 3: Mini League - Greyscale icons */}
         <div className={`${cardBg} border p-4 rounded-lg`}>
           <h3 className={`text-sm font-semibold mb-3 ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
             Your Mini League
           </h3>
           <div className="text-center py-8">
-            <div className={`text-sm ${mutedText} mb-2`}>👥</div>
+            <div className="text-4xl mb-2 grayscale opacity-40">👥</div>
             <div className={`text-sm ${textColor} font-semibold mb-1`}>Coming Soon</div>
             <div className={`text-xs ${mutedText}`}>
               Challenge your friends
