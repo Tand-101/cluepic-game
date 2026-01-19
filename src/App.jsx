@@ -603,7 +603,7 @@ ${squares.join('')}
     );
   }
 
-         // Main game screen
+        // Main game screen
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <style>{`
@@ -688,8 +688,8 @@ ${squares.join('')}
           </div>
         </div>
 
-        {/* Clue display */}
-        {gameState === 'playing' && (clueRevealed || attempts >= 2) && (
+        {/* Clue display - Shows from attempt 1 */}
+        {gameState === 'playing' && (clueRevealed || attempts >= 0) && (
           <div className="mb-3 text-center animate-fadeIn">
             <p className="text-stone-600 text-xs">{puzzle.hint}</p>
           </div>
