@@ -12,6 +12,7 @@ const DifficultySelect = ({
   setShowStats, 
   setShowSettings 
 }) => {
+  
   const defaultExpansionPacks = [
     { name: 'Free App Review', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true },
     { name: 'Food', price: '£2.99', emoji: '🍕', locked: false, requiresReview: false },
@@ -160,7 +161,7 @@ const DifficultySelect = ({
             </button>
 
             {/* Owned packs */}
-          {packs.filter(pack => pack.locked).map((pack, index) => (
+       {packs.filter(pack => pack.locked).map((pack, index) => (
   <button
     key={index}
     onClick={() => onExpansionClick(pack)}  // NEW - opens purchase page
