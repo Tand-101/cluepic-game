@@ -1,73 +1,85 @@
-// src/components/ClueShop.jsx
-// Amendment 7: Clue shop component
-
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-const ClueShop = ({ cluesRemaining, noirMode, onClose }) => {
-  const bgColor = noirMode ? 'bg-zinc-900' : 'bg-stone-50';
-  const cardBg = noirMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-stone-200';
-  const textColor = noirMode ? 'text-zinc-100' : 'text-stone-900';
-  const mutedText = noirMode ? 'text-zinc-400' : 'text-stone-600';
+const ClueShop = ({ cluesRemaining, onClose, onPurchase }) => {
+  const [loading, setLoading] = useState(false);
 
-  const cluePacks = [
-    { clues: 10, price: '£0.49' },
-    { clues: 30, price: '£0.99' },
-    { clues: 150, price: '£2.99' }
+  const packages = [
+    { clues: 5, price: '£0.49', id: 'clues_5' },
+    { clues: 15, price: '£0.99', id: 'clues_15', save: 'Save 34%' },
+    { clues: 50, price: '£2.99', id: 'clues_50', save: 'Best Value' }
   ];
 
+  const handlePurchase = async (pkg) => {
+    setLoading(true);
+    await onPurchase('clues', pkg);
+    setLoading(false);
+  };
+
   return (
-    <div className={`min-h-screen ${bgColor} flex items-center justify-center p-4`}>
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className={`text-2xl font-light ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            Clue Shop
-          </h2>
-          <button onClick={onClose} className={mutedText}>
-            <X size={18} />
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              CLUE SHOP
+            </h1>
+            <p className="text-xs text-stone-500 mt-1">You have {cluesRemaining} clues</p>
+          </div>
+          <button onClick={onClose} className="text-stone-600 hover:text-stone-900">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Premium Option */}
-        <div className={`${noirMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'} border p-4 mb-4 rounded-lg`}>
-          <div className="flex justify-between items-center">
-            <div>
-              <div className={`text-sm ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                Premium
-              </div>
-              <div className={`text-xs ${mutedText}`}>
-                Unlimited clues & hints
-              </div>
-            </div>
-            <button className="bg-amber-900 text-amber-50 px-4 py-2 text-xs rounded hover:bg-amber-800 transition-colors">
-              £4.99/mo
-            </button>
+        <div className="bg-stone-100 border border-stone-200 p-4 mb-4 text-center">
+          <div className="text-sm text-stone-700 mb-2">
+            Clues reveal the category hint immediately
+          </div>
+          <div className="text-xs text-stone-500">
+            Premium members get unlimited clues
           </div>
         </div>
 
-        {/* Clue Packs */}
-        <div className="space-y-3">
-          {cluePacks.map((pack, i) => (
-            <button 
-              key={i} 
-              className={`w-full ${cardBg} border p-4 text-left hover:bg-stone-50 ${noirMode && 'hover:bg-zinc-700'} rounded-lg transition-colors`}
+        <div className="space-y-3 mb-4">
+          {packages.map((pkg) => (
+            <button
+              key={pkg.id}
+              onClick={() => handlePurchase(pkg)}
+              disabled={loading}
+              className="w-full bg-white border border-stone-200 p-4 hover:bg-stone-50 transition-colors disabled:opacity-50 relative"
             >
-              <div className="flex justify-between items-center">
-                <div className={`text-lg ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  {pack.clues} Clues
+              {pkg.save && (
+                <div className="absolute top-2 right-2 text-xs font-medium text-amber-700">
+                  {pkg.save}
                 </div>
-                <div className={`text-xl ${textColor}`} style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  {pack.price}
+              )}
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <div className="text-lg font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    {pkg.clues} Clues
+                  </div>
+                  <div className="text-xs text-stone-600">
+                    {(parseFloat(pkg.price.slice(1)) / pkg.clues * 100).toFixed(0)}p per clue
+                  </div>
+                </div>
+                <div className="text-xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                  {pkg.price}
                 </div>
               </div>
             </button>
           ))}
         </div>
 
-        {/* Clues Remaining */}
-        <div className={`mt-4 text-center text-xs ${mutedText}`}>
-          You have {cluesRemaining} clues remaining
-        </div>
+        <button
+          onClick={() => handlePurchase({ type: 'premium' })}
+          className="w-full bg-stone-900 hover:bg-black text-stone-50 py-3 text-sm tracking-widest transition-colors mb-2"
+        >
+          GET PREMIUM - UNLIMITED CLUES
+        </button>
+
+        <p className="text-xs text-stone-500 text-center">
+          All purchases are final. No refunds except as required by law.
+        </p>
       </div>
     </div>
   );
