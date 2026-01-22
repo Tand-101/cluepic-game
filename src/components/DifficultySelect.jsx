@@ -160,12 +160,13 @@ const DifficultySelect = ({
             </button>
 
             {/* Owned packs */}
-            {packs.filter(pack => !pack.locked).map((pack, index) => (
-              <button
-                key={index}
-                className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative"
-                style={{ minWidth: '100px' }}
-              >
+          {packs.filter(pack => pack.locked).map((pack, index) => (
+  <button
+    key={index}
+    onClick={() => onExpansionClick(pack)}  // NEW - opens purchase page
+    className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative flex-shrink-0"
+    style={{ width: 'calc((100vw - 4rem) / 3.5)', minWidth: '100px', maxWidth: '110px' }}
+  >
                 <div className="absolute top-1 right-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-4 h-4 text-emerald-700" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
