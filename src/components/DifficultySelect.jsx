@@ -8,8 +8,7 @@ const DifficultySelect = ({
   currentStreak,
   expansionPacks, 
   startGame,
-  onArchiveClick, // New prop for archive access
-  hasArchiveAccess = false, // Track if user has purchased archive
+  onExpansionClick,  // NEW - handles clicking expansion tiles
   setShowStats, 
   setShowSettings 
 }) => {
