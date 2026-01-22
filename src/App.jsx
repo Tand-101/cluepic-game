@@ -9,6 +9,8 @@ import Settings from './components/Settings';
 import HintShop from './components/HintShop';
 import ClueShop from './components/ClueShop';
 import Stats from './components/Stats';
+import ExpansionPackPurchase from './components/ExpansionPackPurchase';  // NEW
+import PremiumPurchase from './components/PremiumPurchase';  // NEW
 import { supabase } from './lib/supabase';
 
 const CluepicGame = () => {
@@ -46,8 +48,11 @@ const CluepicGame = () => {
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHintShop, setShowHintShop] = useState(false);
-  const [showClueShop, setShowClueShop] = useState(false);
+ const [showClueShop, setShowClueShop] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);  // NEW
+  const [selectedExpansion, setSelectedExpansion] = useState(null);  // NEW
+  const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);  // NEW
   const [noirMode, setNoirMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shakeEffect, setShakeEffect] = useState(false);
@@ -454,7 +459,74 @@ ${squares.join('')}
   const handlePurchasePremium = (type) => {
     alert(`Premium ${type} purchase coming soon!`);
   };
-         
+// Handle hint/clue purchases - Preserves free starting balance
+  const handleShopPurchase = async (type, pkg) => {
+    if (pkg.type === 'premium') {
+      setShowPremiumPurchase(true);
+      setShowHintShop(false);
+      setShowClueShop(false);
+      return;
+    }
+
+    // TODO: Implement actual IAP here (Stripe, Apple, Google)
+    console.log('Purchase:', type, pkg);
+    
+    // Add to existing balance (preserves free 5 hints/clues)
+    if (type === 'hints' && pkg.hints) {
+      const newHints = hintsRemaining + pkg.hints;
+      setHintsRemaining(newHints);
+      if (userId) {
+        await updateHintsClues(userId, newHints, cluesRemaining);
+      }
+      alert(`Purchase successful! You now have ${newHints} hints.`);
+      setShowHintShop(false);
+    } else if (type === 'clues' && pkg.clues) {
+      const newClues = cluesRemaining + pkg.clues;
+      setCluesRemaining(newClues);
+      if (userId) {
+        await updateHintsClues(userId, hintsRemaining, newClues);
+      }
+      alert(`Purchase successful! You now have ${newClues} clues.`);
+      setShowClueShop(false);
+    }
+  };
+
+  // Handle expansion pack purchase
+  const handleExpansionPurchase = async (pack) => {
+    // TODO: Implement actual IAP here
+    console.log('Purchasing expansion:', pack);
+    
+    alert(`Purchased ${pack.name} for ${pack.price}!`);
+    setShowExpansionPurchase(false);
+    setSelectedExpansion(null);
+    
+    // TODO: Unlock the pack in database
+    // await unlockExpansionPack(userId, pack.category);
+  };
+
+  // Handle clicking expansion tile
+  const handleExpansionClick = (pack) => {
+    setSelectedExpansion(pack);
+    setShowExpansionPurchase(true);
+  };
+
+  // Handle premium subscription purchase  
+  const handlePremiumSubscription = async (plan) => {
+    // TODO: Implement actual IAP here
+    console.log('Purchasing premium:', plan);
+    
+    alert(`Subscribed to ${plan} plan!`);
+    setIsPremium(true);
+    setShowPremiumPurchase(false);
+    
+    // Update database
+    if (userId) {
+      await supabase
+        .from('user_profiles')
+        .update({ is_premium: true })
+        .eq('user_id', userId);
+    }
+  };         
 // Show different screens
   if (showSettings) {
     return (
@@ -474,8 +546,8 @@ ${squares.join('')}
     return (
       <HintShop
         hintsRemaining={hintsRemaining}
-        noirMode={noirMode}
         onClose={() => setShowHintShop(false)}
+        onPurchase={handleShopPurchase}  // NEW
       />
     );
   }
@@ -484,23 +556,32 @@ ${squares.join('')}
     return (
       <ClueShop
         cluesRemaining={cluesRemaining}
-        noirMode={noirMode}
         onClose={() => setShowClueShop(false)}
+        onPurchase={handleShopPurchase}  // NEW
       />
     );
   }
 
-  if (showStats) {
+  // Expansion Pack Purchase Screen - NEW
+  if (showExpansionPurchase && selectedExpansion) {
     return (
-      <Stats
-        totalScore={totalScore}
-        currentStreak={currentStreak}
-        winRate={userStats.total.winRate}
-        classicStats={userStats.classic}
-        challengeStats={userStats.challenge}
-        timedStats={userStats.timed}
-        noirMode={noirMode}
-        onClose={() => setShowStats(false)}
+      <ExpansionPackPurchase
+        pack={selectedExpansion}
+        onClose={() => {
+          setShowExpansionPurchase(false);
+          setSelectedExpansion(null);
+        }}
+        onPurchase={handleExpansionPurchase}
+      />
+    );
+  }
+
+  // Premium Purchase Screen - NEW
+  if (showPremiumPurchase) {
+    return (
+      <PremiumPurchase
+        onClose={() => setShowPremiumPurchase(false)}
+        onPurchase={handlePremiumSubscription}
       />
     );
   }
@@ -513,6 +594,7 @@ ${squares.join('')}
         startGame={startGame}
         onArchiveClick={handleArchiveClick}
         hasArchiveAccess={hasArchiveAccess}
+        onExpansionClick={handleExpansionClick}  // NEW
         setShowStats={setShowStats}
         setShowSettings={setShowSettings}
       />
@@ -640,19 +722,33 @@ ${squares.join('')}
                 {formatTime(timeRemaining)}
               </div>
             )}
-            <button 
+           <button 
               onClick={() => setShowClueShop(true)}
-              className="bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors"
+              className={`relative bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors ${
+                cluesRemaining === 0 ? 'pr-7' : ''
+              }`}
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               {cluesRemaining} Clues
+              {cluesRemaining === 0 && (
+                <div className="absolute top-0 right-0 w-5 h-5 bg-stone-400 rounded-bl flex items-center justify-center text-xs">
+                  💰
+                </div>
+              )}
             </button>
             <button 
               onClick={() => setShowHintShop(true)}
-              className="bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors"
+              className={`relative bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors ${
+                hintsRemaining === 0 ? 'pr-7' : ''
+              }`}
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               {hintsRemaining} Hints
+              {hintsRemaining === 0 && (
+                <div className="absolute top-0 right-0 w-5 h-5 bg-stone-400 rounded-bl flex items-center justify-center text-xs">
+                  💰
+                </div>
+              )}
             </button>
             <div className="text-right">
               <div className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{totalScore}</div>
