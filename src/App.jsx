@@ -902,6 +902,8 @@ ${squares.join('')}
       </div>
     </div>
   );
-};
+javascript    </div>
+  );
+};  // ← ADD THIS LINE
 
 export default CluepicGame;
