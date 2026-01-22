@@ -14,19 +14,10 @@ import PremiumPurchase from './components/PremiumPurchase';  // NEW
 import { supabase } from './lib/supabase';
 
 const CluepicGame = () => {
-  // User & Profile State
-  const CluepicGame = () => {
-  // User & Profile State
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [totalScore, setTotalScore] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
-  
-  // ... more state ...
-  
-  const [isPremium, setIsPremium] = useState(false);
-  
-  // Puzzle State - Amendment 3: Different puzzles per difficulty
   const [puzzles, setPuzzles] = useState([]);
   const [dailyPuzzles, setDailyPuzzles] = useState({ Classic: [], Challenge: [], Timed: [] });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
@@ -37,40 +28,28 @@ const CluepicGame = () => {
   const [showDifficultySelect, setShowDifficultySelect] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [userInput, setUserInput] = useState([]);
-  
-  // Amendment 5: Image effects
   const [effectType, setEffectType] = useState('blur');
-  
-  // Hints & Clues - Amendment 7
   const [hintsRemaining, setHintsRemaining] = useState(5);
   const [cluesRemaining, setCluesRemaining] = useState(5);
   const [clueRevealed, setClueRevealed] = useState(false);
-  
-  // Timer State
   const [timeRemaining, setTimeRemaining] = useState(120);
   const [timerActive, setTimerActive] = useState(false);
-  
-  // UI State
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHintShop, setShowHintShop] = useState(false);
- const [showClueShop, setShowClueShop] = useState(false);
+  const [showClueShop, setShowClueShop] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
-  const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);  // NEW
-  const [selectedExpansion, setSelectedExpansion] = useState(null);  // NEW
-  const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);  // NEW
   const [noirMode, setNoirMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shakeEffect, setShakeEffect] = useState(false);
   const [celebrateEffect, setCelebrateEffect] = useState(false);
-  
- // Archive State - ADD THESE IF MISSING
-  const [hasArchiveAccess, setHasArchiveAccess] = useState(false);  // ← ADD THIS LINE
+  const [hasArchiveAccess, setHasArchiveAccess] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [archivePuzzles, setArchivePuzzles] = useState([]);
   const [isPlayingArchive, setIsPlayingArchive] = useState(false);
-           
-  // Stats - Amendment 11, 16
+  const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);
+  const [selectedExpansion, setSelectedExpansion] = useState(null);
+  const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);
   const [userStats, setUserStats] = useState({
     total: { played: 0, won: 0, score: 0, winRate: 0 },
     classic: { played: 0, won: 0, score: 0, winRate: 0 },
@@ -80,7 +59,6 @@ const CluepicGame = () => {
   
   const inputRefs = useRef([]);
   const maxAttempts = 5;
-  
   const puzzle = puzzles[currentPuzzle];
 
 // Initialize user on mount - UPDATED
