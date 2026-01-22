@@ -15,10 +15,16 @@ import { supabase } from './lib/supabase';
 
 const CluepicGame = () => {
   // User & Profile State
+  const CluepicGame = () => {
+  // User & Profile State
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [totalScore, setTotalScore] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
+  
+  // ... more state ...
+  
+  const [isPremium, setIsPremium] = useState(false);
   
   // Puzzle State - Amendment 3: Different puzzles per difficulty
   const [puzzles, setPuzzles] = useState([]);
@@ -58,12 +64,12 @@ const CluepicGame = () => {
   const [shakeEffect, setShakeEffect] = useState(false);
   const [celebrateEffect, setCelebrateEffect] = useState(false);
   
-  // Archive State - NEW
-  const [hasArchiveAccess, setHasArchiveAccess] = useState(false);
+ // Archive State - ADD THESE IF MISSING
+  const [hasArchiveAccess, setHasArchiveAccess] = useState(false);  // ← ADD THIS LINE
   const [showArchive, setShowArchive] = useState(false);
   const [archivePuzzles, setArchivePuzzles] = useState([]);
   const [isPlayingArchive, setIsPlayingArchive] = useState(false);
-  
+           
   // Stats - Amendment 11, 16
   const [userStats, setUserStats] = useState({
     total: { played: 0, won: 0, score: 0, winRate: 0 },
