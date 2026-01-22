@@ -895,15 +895,13 @@ ${squares.join('')}
           <button
             onClick={goHome}
             className="text-stone-600 hover:text-stone-800 flex items-center gap-2 text-xs transition-colors"
-          >
+                   >
             <Home size={14} /> HOME
           </button>
         </div>
       </div>
     </div>
   );
-javascript    </div>
-  );
-};  // ← ADD THIS LINE
+};  // ← This closes the main return statement and CluepicGame function
 
 export default CluepicGame;
