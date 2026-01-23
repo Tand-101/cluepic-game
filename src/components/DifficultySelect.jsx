@@ -12,16 +12,18 @@ const DifficultySelect = ({
   setShowSettings 
 }) => {
   
-  const defaultExpansionPacks = [
-    { name: 'Free App Review', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true },
-    { name: 'Food', price: '£2.99', emoji: '🍕', locked: false, requiresReview: false },
-    { name: 'Halloween', price: '£2.99', emoji: '🎃', locked: true, requiresReview: false },
-    { name: 'Animals', price: '£2.99', emoji: '🦁', locked: true, requiresReview: false },
-    { name: 'Professions', price: '£2.99', emoji: '👨‍⚕️', locked: true, requiresReview: false },
-    { name: 'Travel', price: '£2.99', emoji: '✈️', locked: true, requiresReview: false },
-    { name: 'Sports', price: '£2.99', emoji: '⚽', locked: true, requiresReview: false },
-    { name: 'Nature', price: '£2.99', emoji: '🌲', locked: true, requiresReview: false },
-    { name: 'Music', price: '£2.99', emoji: '🎵', locked: true, requiresReview: false }
+ const defaultExpansionPacks = [
+    { name: 'Freereview', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true, category: 'Freereview' },
+    { name: 'Animals', price: '£2.99', emoji: '🦁', locked: true, requiresReview: false, category: 'Animals' },
+    { name: 'Countries', price: '£2.99', emoji: '🌍', locked: true, requiresReview: false, category: 'Countries' },
+    { name: 'Food', price: '£2.99', emoji: '🍕', locked: true, requiresReview: false, category: 'Food' },
+    { name: 'Halloween', price: '£2.99', emoji: '🎃', locked: true, requiresReview: false, category: 'Halloween' },
+    { name: 'Home', price: '£2.99', emoji: '🏠', locked: true, requiresReview: false, category: 'Home' },
+    { name: 'Jobs', price: '£2.99', emoji: '👷', locked: true, requiresReview: false, category: 'Jobs' },
+    { name: 'School', price: '£2.99', emoji: '🎓', locked: true, requiresReview: false, category: 'School' },
+    { name: 'Sports', price: '£2.99', emoji: '⚽', locked: true, requiresReview: false, category: 'Sports' },
+    { name: 'Weather', price: '£2.99', emoji: '☀️', locked: true, requiresReview: false, category: 'Weather' },
+    { name: 'Wild', price: '£2.99', emoji: '🌲', locked: true, requiresReview: false, category: 'Wild' }
   ];
 
   const packs = expansionPacks && expansionPacks.length > 0 ? expansionPacks : defaultExpansionPacks;
@@ -227,7 +229,7 @@ const DifficultySelect = ({
                       <path d="M7 11 V7 A5 5 0 0 1 17 7 V11" />
                     </svg>
                   </div>
-                  <div className="text-xl mb-1 grayscale">{pack.emoji}</div>
+                  <div className="text-xl mb-1" style={{ filter: 'grayscale(100%)' }}>{pack.emoji}</div>
                   <div className="text-xs mb-1 tracking-wider" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                     {pack.name}
                   </div>
