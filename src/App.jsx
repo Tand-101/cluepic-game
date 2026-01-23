@@ -981,6 +981,5 @@ ${squares.join('')}
       </div>
     </div>
   );
-};  // ← This closes the main return statement and CluepicGame function
 
 export default CluepicGame;
