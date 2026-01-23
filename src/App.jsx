@@ -345,7 +345,10 @@ ${squares.join('')}
       setTimerActive(false);
       setCelebrateEffect(true);
       setTimeout(() => setCelebrateEffect(false), 2000);
-      
+      // Track Unsplash download (required for compliance)
+      if (puzzle.downloadLocation) {
+        trackUnsplashDownload(puzzle.downloadLocation);
+      }
       if (userId) {
         await supabase.from('puzzle_completions').insert([
           {
@@ -377,7 +380,11 @@ ${squares.join('')}
       if (newAttempts >= maxAttempts) {
         setGameState('lost');
         setTimerActive(false);
-        
+// Track Unsplash download (required for compliance)
+        if (puzzle.downloadLocation) {
+          trackUnsplashDownload(puzzle.downloadLocation);
+        }
+               
         if (userId) {
           await supabase.from('puzzle_completions').insert([
             {
@@ -510,7 +517,21 @@ ${squares.join('')}
         .update({ is_premium: true })
         .eq('user_id', userId);
     }
-  };         
+  };     
+// Unsplash API compliance - Track photo downloads
+  const trackUnsplashDownload = async (downloadLocation) => {
+    if (!downloadLocation) return;
+    
+    try {
+      // Trigger Unsplash download endpoint (required by API terms)
+      // This helps photographers get paid and is mandatory
+      await fetch(downloadLocation);
+    } catch (error) {
+      // Fail silently - don't block user experience
+      console.error('Unsplash download tracking failed:', error);
+    }
+  };
+         
 // Show different screens
   if (showSettings) {
     return (
@@ -760,9 +781,35 @@ ${squares.join('')}
                 opacity: imageLoaded ? 1 : 0
               }}
             />
+            
+            {/* Attempt counter - only during play */}
             {gameState === 'playing' && (
               <div className="absolute top-2 right-2 bg-stone-900 bg-opacity-80 text-stone-50 px-3 py-1 text-xs rounded">
                 {attempts + 1}/{maxAttempts}
+              </div>
+            )}
+            
+            {/* Unsplash Attribution - shows after reveal */}
+            {gameState !== 'playing' && puzzle.photographer && (
+              <div className="absolute bottom-0 left-0 right-0 bg-white bg-opacity-95 px-2 py-1.5 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                <span className="text-stone-700">Photo by </span>
+                <a 
+                  href={`${puzzle.photographerUrl}?utm_source=cluepic&utm_medium=referral`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-stone-900 underline hover:text-stone-600 transition-colors"
+                >
+                  {puzzle.photographer}
+                </a>
+                <span className="text-stone-700"> on </span>
+                <a 
+                  href="https://unsplash.com?utm_source=cluepic&utm_medium=referral"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-stone-900 underline hover:text-stone-600 transition-colors"
+                >
+                  Unsplash
+                </a>
               </div>
             )}
           </div>
