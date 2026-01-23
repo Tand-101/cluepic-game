@@ -12,6 +12,7 @@ import Stats from './components/Stats';
 import ExpansionPackPurchase from './components/ExpansionPackPurchase';  // NEW
 import PremiumPurchase from './components/PremiumPurchase';  // NEW
 import { supabase } from './lib/supabase';
+import { DEV_MODE, isCategoryLocked } from './config/categories';
 
 const CluepicGame = () => {
   const [userId, setUserId] = useState(null);
@@ -48,6 +49,7 @@ const CluepicGame = () => {
   const [archivePuzzles, setArchivePuzzles] = useState([]);
   const [isPlayingArchive, setIsPlayingArchive] = useState(false);
   const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);
+     const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedExpansion, setSelectedExpansion] = useState(null);
   const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);
   const [userStats, setUserStats] = useState({
@@ -104,7 +106,7 @@ const CluepicGame = () => {
   useEffect(() => {
     const loadPuzzles = async () => {
       if (difficulty) {
-        const fetchedPuzzles = await fetchPuzzlesByDifficulty(difficulty);
+        const fetchedPuzzles = await fetchPuzzlesByDifficulty(difficulty, selectedCategory);
         setPuzzles(fetchedPuzzles);
         
         if (fetchedPuzzles.length > 0) {
@@ -175,8 +177,9 @@ const CluepicGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, userInput, correctLetters]);
 
-  const startGame = (selectedDifficulty) => {
+ const startGame = (selectedDifficulty, category = null) => {
     setDifficulty(selectedDifficulty);
+    setSelectedCategory(category);
     setShowDifficultySelect(false);
     if (selectedDifficulty === 'timed') {
       setTimerActive(true);
@@ -497,19 +500,39 @@ ${squares.join('')}
 
   // Handle clicking expansion tile
   const handleExpansionClick = (pack) => {
-    setSelectedExpansion(pack);
-    setShowExpansionPurchase(true);
+    // Check if locked
+    if (pack.locked && !DEV_MODE) {
+      setSelectedExpansion(pack);
+      setShowExpansionPurchase(true);
+    } else {
+      // Already unlocked - start playing
+      startGame('easy', pack.category);
+    }
   };
 
   // Handle premium subscription purchase  
   const handlePremiumSubscription = async (plan) => {
+    if (DEV_MODE) {
+      // In dev mode, just unlock immediately
+      alert(`DEV MODE: Subscribed to ${plan} plan!`);
+      setIsPremium(true);
+      setShowPremiumPurchase(false);
+      
+      if (userId) {
+        await supabase
+          .from('user_profiles')
+          .update({ is_premium: true })
+          .eq('user_id', userId);
+      }
+      return;
+    }
+    
     // TODO: Implement actual IAP here
     console.log('Purchasing premium:', plan);
     
     alert(`Subscribed to ${plan} plan!`);
     setIsPremium(true);
     setShowPremiumPurchase(false);
-    
     // Update database
     if (userId) {
       await supabase
