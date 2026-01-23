@@ -981,5 +981,5 @@ ${squares.join('')}
       </div>
     </div>
   );
-
+};
 export default CluepicGame;
