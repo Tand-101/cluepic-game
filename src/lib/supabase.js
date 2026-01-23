@@ -1,5 +1,4 @@
 // src/lib/supabase.js
-// Amendment 3: Daily puzzles from "Daily" category with archive system
 // Unsplash compliant version
 
 import { createClient } from '@supabase/supabase-js'
