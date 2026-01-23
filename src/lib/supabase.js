@@ -1,5 +1,6 @@
 // src/lib/supabase.js
 // Amendment 3: Daily puzzles from "Daily" category with archive system
+// Unsplash compliant version
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -45,12 +46,14 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
           image_url,
           thumbnail_url,
           photographer,
-          photographer_url
+          photographer_url,
+          unsplash_photo_id,
+          download_location
         )
       `)
       .eq('active', true)
       .eq('difficulty', targetDifficulty)
-      .neq('category', 'Daily') // Exclude daily category from regular play
+      .neq('category', 'Daily')
       .order('term', { ascending: true })
 
     if (error) throw error
@@ -68,7 +71,9 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
           category: item.category,
           difficulty: item.difficulty,
           photographer: image.photographer,
-          photographerUrl: image.photographer_url
+          photographerUrl: image.photographer_url,
+          unsplashPhotoId: image.unsplash_photo_id,
+          downloadLocation: image.download_location
         }
       })
 
@@ -98,7 +103,9 @@ export const fetchDailyPuzzles = async () => {
           image_url,
           thumbnail_url,
           photographer,
-          photographer_url
+          photographer_url,
+          unsplash_photo_id,
+          download_location
         )
       `)
       .eq('active', true)
@@ -116,19 +123,7 @@ export const fetchDailyPuzzles = async () => {
 
     data.forEach(item => {
       if (item.images && item.images.length > 0 && byDifficulty[item.difficulty]) {
-        const image = item.images[0]
-        byDifficulty[item.difficulty].push({
-          id: item.id,
-          word: item.term.toUpperCase(),
-          image: formatImageUrl(image.image_url),
-          thumbnail: formatImageUrl(image.thumbnail_url),
-          hint: item.clue || 'Guess the word',
-          category: item.category,
-          difficulty: item.difficulty,
-          photographer: image.photographer,
-          photographerUrl: image.photographer_url,
-          date: today
-        })
+        byDifficulty[item.difficulty].push(item)
       }
     })
 
@@ -139,18 +134,34 @@ export const fetchDailyPuzzles = async () => {
       Challenge: [],
       Timed: []
     }
-
+    
     // Select 3 puzzles for each difficulty using deterministic rotation
     Object.keys(byDifficulty).forEach(difficulty => {
       const available = byDifficulty[difficulty]
       if (available.length > 0) {
         for (let i = 0; i < 3; i++) {
           const index = (seed + i) % available.length
-          dailyPuzzles[difficulty].push(available[index])
+          const item = available[index]
+          const image = item.images[0]
+          
+          dailyPuzzles[difficulty].push({
+            id: item.id,
+            word: item.term.toUpperCase(),
+image: formatImageUrl(image.image_url),
+            thumbnail: formatImageUrl(image.thumbnail_url),
+            hint: item.clue || 'Guess the word',
+            category: item.category,
+            difficulty: item.difficulty,
+            photographer: image.photographer,
+            photographerUrl: image.photographer_url,
+            unsplashPhotoId: image.unsplash_photo_id,
+            downloadLocation: image.download_location,
+            date: today
+          })
         }
       }
     })
-
+    
     return dailyPuzzles
   } catch (error) {
     console.error('Error fetching daily puzzles:', error)
@@ -181,7 +192,9 @@ export const fetchArchivePuzzles = async (hasArchiveAccess) => {
           image_url,
           thumbnail_url,
           photographer,
-          photographer_url
+          photographer_url,
+          unsplash_photo_id,
+          download_location
         )
       `)
       .eq('active', true)
@@ -212,7 +225,9 @@ export const fetchArchivePuzzles = async (hasArchiveAccess) => {
           category: 'Daily Archive',
           difficulty: item.difficulty,
           photographer: image.photographer,
-          photographerUrl: image.photographer_url
+          photographerUrl: image.photographer_url,
+          unsplashPhotoId: image.unsplash_photo_id,
+          downloadLocation: image.download_location
         }
       })
 
@@ -247,7 +262,7 @@ export const fetchExpansionPacks = async () => {
       .from('search_terms')
       .select('category')
       .eq('active', true)
-      .neq('category', 'Daily') // Exclude Daily from expansion packs
+      .neq('category', 'Daily')
 
     if (error) throw error
 
@@ -282,6 +297,7 @@ export const fetchExpansionPacks = async () => {
     return []
   }
 }
+
 
 // Fetch puzzles by category (Amendment 2: Ensure proper distribution)
 export const fetchPuzzlesByCategory = async (category) => {
