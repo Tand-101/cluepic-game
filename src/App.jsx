@@ -487,8 +487,39 @@ ${squares.join('')}
 
   // Handle expansion pack purchase
   const handleExpansionPurchase = async (pack) => {
-    // TODO: Implement actual IAP here
-    console.log('Purchasing expansion:', pack);
+    if (DEV_MODE) {
+      // Dev mode: Instant unlock
+      alert(`DEV MODE: Unlocked ${pack.name}!`);
+      // Add to purchased packs
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ 
+          purchased_packs: [...(userProfile.purchased_packs || []), pack.category]
+        })
+        .eq('user_id', userId);
+      
+      if (!error) {
+        setUserProfile({
+          ...userProfile,
+          purchased_packs: [...(userProfile.purchased_packs || []), pack.category]
+        });
+      }
+      
+      setShowExpansionPurchase(false);
+      setSelectedExpansion(null);
+      return;
+    }
+    
+    // Production: Use IAP
+    const { purchaseProduct } = await import('./lib/iapManager');
+    const result = await purchaseProduct(`expansion_${pack.category.toLowerCase()}`, userId);
+    
+    if (result.success) {
+      alert(`Purchased ${pack.name}!`);
+      setShowExpansionPurchase(false);
+      setSelectedExpansion(null);
+    }
+  };
     
     alert(`Purchased ${pack.name} for ${pack.price}!`);
     setShowExpansionPurchase(false);
