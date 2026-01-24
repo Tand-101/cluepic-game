@@ -9,14 +9,14 @@ export const CATEGORY_CONFIG = {
     name: 'Daily',
     price: 'Free',
     locked: false,
-    puzzlesPerDay: 5, // 5 per difficulty
+    puzzlesPerDay: 5,
     description: 'New puzzles every day'
   },
   Freereview: {
     emoji: '📚',
     name: 'Free App Review',
     price: 'Free with Review',
-    locked: !DEV_MODE, // Unlocked in dev mode
+    locked: !DEV_MODE,
     requiresReview: true,
     description: 'Unlock by reviewing our app'
   },
@@ -92,34 +92,28 @@ export const CATEGORY_CONFIG = {
   }
 };
 
-// Get category display name
 export const getCategoryName = (category) => {
   return CATEGORY_CONFIG[category]?.name || category;
 };
 
-// Check if category is locked
 export const isCategoryLocked = (category, userProfile) => {
-  if (DEV_MODE) return false; // Everything unlocked in dev mode
+  if (DEV_MODE) return false;
   
   const config = CATEGORY_CONFIG[category];
   if (!config) return true;
   
-  // Daily is always free
   if (category === 'Daily') return false;
   
-  // Check if user owns this pack
   if (userProfile?.purchased_packs?.includes(category)) return false;
   
-  // Check if user has premium (unlocks everything)
   if (userProfile?.is_premium) return false;
   
   return config.locked;
 };
 
-// Get expansion packs for display
 export const getExpansionPacks = (userProfile) => {
   return Object.keys(CATEGORY_CONFIG)
-    .filter(cat => cat !== 'Daily') // Exclude Daily from expansion packs
+    .filter(cat => cat !== 'Daily')
     .map(category => ({
       ...CATEGORY_CONFIG[category],
       category,
