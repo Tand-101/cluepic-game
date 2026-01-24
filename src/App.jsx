@@ -77,29 +77,34 @@ const CluepicGame = () => {
         }
 
         setUserId(user.id);
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
 
-      if (profile) {
-        setUserProfile(profile);
-        setTotalScore(profile.total_score);
-        setCurrentStreak(profile.current_streak);
-        setHintsRemaining(profile.hints_remaining);
-        setCluesRemaining(profile.clues_remaining);
-        setIsPremium(profile.is_premium);
-        setHasArchiveAccess(profile.has_archive_access || false);
-        
-        const newStreak = await updateStreak(user.id, profile.last_login_date);
-        setCurrentStreak(newStreak);
-        
-        const stats = await getUserStatistics(user.id);
-        setUserStats(stats);
-        
-        const dailies = await fetchDailyPuzzles();
-        setDailyPuzzles(dailies);
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+          setTotalScore(profile.total_score);
+          setCurrentStreak(profile.current_streak);
+          setHintsRemaining(profile.hints_remaining);
+          setCluesRemaining(profile.clues_remaining);
+          setIsPremium(profile.is_premium);
+          setHasArchiveAccess(profile.has_archive_access || false);
+          
+          const newStreak = await updateStreak(user.id, profile.last_login_date);
+          setCurrentStreak(newStreak);
+          
+          const stats = await getUserStatistics(user.id);
+          setUserStats(stats);
+          
+          const dailies = await fetchDailyPuzzles();
+          setDailyPuzzles(dailies);
+        }
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        // App will still work in guest mode
       }
     };
     
