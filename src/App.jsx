@@ -974,4 +974,5 @@ ${squares.join('')}
     </div>
   );
 };
+         };  // ← ADD THIS LINE to close CluepicGame function
 export default CluepicGame;
