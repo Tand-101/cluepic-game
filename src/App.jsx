@@ -519,15 +519,7 @@ ${squares.join('')}
       setShowExpansionPurchase(false);
       setSelectedExpansion(null);
     }
-  };
-    
-    alert(`Purchased ${pack.name} for ${pack.price}!`);
-    setShowExpansionPurchase(false);
-    setSelectedExpansion(null);
-    
-    // TODO: Unlock the pack in database
-    // await unlockExpansionPack(userId, pack.category);
-  };
+  
 
   // Handle clicking expansion tile
   const handleExpansionClick = (pack) => {
