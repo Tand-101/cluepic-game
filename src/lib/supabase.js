@@ -1,5 +1,5 @@
 // src/lib/supabase.js
-// Unsplash compliant version
+// Updated for new category structure
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -8,11 +8,10 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Amendment 1: Add image sizing parameters to Unsplash URLs
+// Add image sizing parameters to Unsplash URLs
 const formatImageUrl = (url) => {
   if (!url) return url;
   
-  // If it's an Unsplash URL, add size parameters
   if (url.includes('unsplash.com')) {
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}w=800&h=600&fit=crop`;
@@ -21,8 +20,8 @@ const formatImageUrl = (url) => {
   return url;
 };
 
-// Fetch puzzles by difficulty (for regular gameplay)
-export const fetchPuzzlesByDifficulty = async (difficulty) => {
+// Fetch puzzles by difficulty and optional category
+export const fetchPuzzlesByDifficulty = async (difficulty, category = null) => {
   try {
     const difficultyMap = {
       'easy': 'Classic',
@@ -32,7 +31,7 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
     
     const targetDifficulty = difficultyMap[difficulty] || 'Classic'
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('search_terms')
       .select(`
         id,
@@ -52,8 +51,18 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
       `)
       .eq('active', true)
       .eq('difficulty', targetDifficulty)
-      .neq('category', 'Daily')
-      .order('term', { ascending: true })
+    
+    // If category specified, filter by it
+    if (category) {
+      query = query.eq('category', category)
+    } else {
+      // Otherwise exclude Daily (show all expansion packs)
+      query = query.neq('category', 'Daily')
+    }
+    
+    query = query.order('term', { ascending: true })
+
+    const { data, error } = await query
 
     if (error) throw error
 
@@ -83,12 +92,11 @@ export const fetchPuzzlesByDifficulty = async (difficulty) => {
   }
 }
 
-// Amendment 3: Fetch today's daily puzzles (3x Classic, 3x Challenge, 3x Timed from "Daily" category)
+// Fetch today's daily puzzles (5x Classic, 5x Challenge, 5x Timed)
 export const fetchDailyPuzzles = async () => {
   try {
     const today = new Date().toISOString().split('T')[0]
     
-    // Fetch ALL puzzles from the "Daily" category
     const { data, error } = await supabase
       .from('search_terms')
       .select(`
@@ -113,7 +121,6 @@ export const fetchDailyPuzzles = async () => {
 
     if (error) throw error
 
-    // Separate by difficulty
     const byDifficulty = {
       Classic: [],
       Challenge: [],
@@ -126,7 +133,6 @@ export const fetchDailyPuzzles = async () => {
       }
     })
 
-    // Use date as seed to select 3 puzzles per difficulty
     const seed = parseInt(today.replace(/-/g, ''))
     const dailyPuzzles = {
       Classic: [],
@@ -134,11 +140,11 @@ export const fetchDailyPuzzles = async () => {
       Timed: []
     }
     
-    // Select 3 puzzles for each difficulty using deterministic rotation
+    // Select 5 puzzles for each difficulty
     Object.keys(byDifficulty).forEach(difficulty => {
       const available = byDifficulty[difficulty]
       if (available.length > 0) {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
           const index = (seed + i) % available.length
           const item = available[index]
           const image = item.images[0]
@@ -146,7 +152,7 @@ export const fetchDailyPuzzles = async () => {
           dailyPuzzles[difficulty].push({
             id: item.id,
             word: item.term.toUpperCase(),
-image: formatImageUrl(image.image_url),
+            image: formatImageUrl(image.image_url),
             thumbnail: formatImageUrl(image.thumbnail_url),
             hint: item.clue || 'Guess the word',
             category: item.category,
@@ -168,7 +174,7 @@ image: formatImageUrl(image.image_url),
   }
 }
 
-// Amendment 3: Fetch archive puzzles (previous days' dailies)
+// Fetch archive puzzles (previous days' dailies)
 export const fetchArchivePuzzles = async (hasArchiveAccess) => {
   if (!hasArchiveAccess) {
     return { available: false, puzzles: [] }
@@ -177,7 +183,6 @@ export const fetchArchivePuzzles = async (hasArchiveAccess) => {
   try {
     const today = new Date().toISOString().split('T')[0]
     
-    // Get all Daily category puzzles
     const { data, error } = await supabase
       .from('search_terms')
       .select(`
@@ -202,7 +207,6 @@ export const fetchArchivePuzzles = async (hasArchiveAccess) => {
 
     if (error) throw error
 
-    // Get current day's puzzle IDs to exclude them
     const todaysPuzzles = await fetchDailyPuzzles()
     const todaysPuzzleIds = new Set([
       ...todaysPuzzles.Classic.map(p => p.id),
@@ -210,7 +214,6 @@ export const fetchArchivePuzzles = async (hasArchiveAccess) => {
       ...todaysPuzzles.Timed.map(p => p.id)
     ])
 
-    // Map all puzzles except today's
     const archivePuzzles = data
       .filter(item => item.images && item.images.length > 0 && !todaysPuzzleIds.has(item.id))
       .map(item => {
@@ -247,15 +250,15 @@ export const checkDailyCompletion = (completedPuzzles) => {
   const todayCompleted = completedPuzzles.filter(p => p.date === today)
   
   return {
-    classicComplete: todayCompleted.filter(p => p.difficulty === 'Classic').length >= 3,
-    challengeComplete: todayCompleted.filter(p => p.difficulty === 'Challenge').length >= 3,
-    timedComplete: todayCompleted.filter(p => p.difficulty === 'Timed').length >= 3,
-    allComplete: todayCompleted.length >= 9
+    classicComplete: todayCompleted.filter(p => p.difficulty === 'Classic').length >= 5,
+    challengeComplete: todayCompleted.filter(p => p.difficulty === 'Challenge').length >= 5,
+    timedComplete: todayCompleted.filter(p => p.difficulty === 'Timed').length >= 5,
+    allComplete: todayCompleted.length >= 15
   }
 }
 
-// Fetch expansion packs from categories (exclude Daily category)
-export const fetchExpansionPacks = async () => {
+// Fetch expansion packs from categories
+export const fetchExpansionPacks = async (userProfile = null) => {
   try {
     const { data, error } = await supabase
       .from('search_terms')
@@ -265,40 +268,47 @@ export const fetchExpansionPacks = async () => {
 
     if (error) throw error
 
-    // Get unique categories
     const categories = [...new Set(data.map(item => item.category))]
     
-    // Map categories to expansion packs with emojis
-    const categoryEmojis = {
-      'Animals': '🦁',
-      'Nature': '🌲',
-      'Food': '🍕',
-      'Architecture': '🏛️',
-      'Objects': '🎨',
-      'Sports': '⚽',
-      'Music': '🎵',
-      'Travel': '✈️',
-      'Professions': '👨‍⚕️',
-      'Halloween': '🎃',
-      'Free App Review': '📚'
+    const categoryConfig = {
+      'Freereview': { emoji: '📚', name: 'Free App Review', price: 'Free with Review', requiresReview: true },
+      'Animals': { emoji: '🦁', name: 'Animals', price: '£2.99' },
+      'Countries': { emoji: '🌍', name: 'Countries', price: '£2.99' },
+      'Food': { emoji: '🍕', name: 'Food', price: '£2.99' },
+      'Halloween': { emoji: '🎃', name: 'Halloween', price: '£2.99' },
+      'Home': { emoji: '🏠', name: 'Home', price: '£2.99' },
+      'Jobs': { emoji: '👷', name: 'Jobs', price: '£2.99' },
+      'School': { emoji: '🎓', name: 'School', price: '£2.99' },
+      'Sports': { emoji: '⚽', name: 'Sports', price: '£2.99' },
+      'Weather': { emoji: '☀️', name: 'Weather', price: '£2.99' },
+      'Wild': { emoji: '🌲', name: 'Wild', price: '£2.99' }
     }
 
-    return categories.map(category => ({
-      name: category,
-      price: category === 'Free App Review' ? 'Free with Review' : '£2.99',
-      emoji: categoryEmojis[category] || '📦',
-      locked: category !== 'Free App Review' && category !== 'Food',
-      requiresReview: category === 'Free App Review',
-      category: category
-    }))
+    return categories.map(category => {
+      const config = categoryConfig[category] || {
+        emoji: '📦',
+        name: category,
+        price: '£2.99'
+      }
+      
+      const isOwned = userProfile?.purchased_packs?.includes(category) || 
+                      userProfile?.is_premium || 
+                      category === 'Freereview'
+      
+      return {
+        ...config,
+        category,
+        locked: !isOwned,
+        requiresReview: config.requiresReview || false
+      }
+    })
   } catch (error) {
     console.error('Error fetching expansion packs:', error)
     return []
   }
 }
 
-
-// Fetch puzzles by category (Amendment 2: Ensure proper distribution)
+// Fetch puzzles by category
 export const fetchPuzzlesByCategory = async (category) => {
   try {
     const { data, error } = await supabase
@@ -314,7 +324,9 @@ export const fetchPuzzlesByCategory = async (category) => {
           image_url,
           thumbnail_url,
           photographer,
-          photographer_url
+          photographer_url,
+          unsplash_photo_id,
+          download_location
         )
       `)
       .eq('active', true)
@@ -337,7 +349,9 @@ export const fetchPuzzlesByCategory = async (category) => {
           category: item.category,
           difficulty: item.difficulty,
           photographer: image.photographer,
-          photographerUrl: image.photographer_url
+          photographerUrl: image.photographer_url,
+          unsplashPhotoId: image.unsplash_photo_id,
+          downloadLocation: image.download_location
         }
       })
   } catch (error) {
