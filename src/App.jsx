@@ -73,6 +73,18 @@ const CluepicGame = () => {
         
         if (!user) {
           console.log('No user logged in - showing guest mode');
+          // Set up guest mode with default values
+          setUserId('guest_' + Date.now());
+          setTotalScore(0);
+          setCurrentStreak(0);
+          setHintsRemaining(5);
+          setCluesRemaining(5);
+          setIsPremium(false);
+          setHasArchiveAccess(false);
+          
+          // Fetch daily puzzles for guest
+          const dailies = await fetchDailyPuzzles();
+          setDailyPuzzles(dailies);
           return;
         }
 
