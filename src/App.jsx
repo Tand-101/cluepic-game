@@ -66,13 +66,17 @@ const CluepicGame = () => {
 // Initialize user on mount - UPDATED
   useEffect(() => {
     const initUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('No user logged in - showing guest mode');
+          return;
+        }
 
-      setUserId(user.id);
-
+        setUserId(user.id);
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('*')
