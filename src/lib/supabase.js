@@ -1,5 +1,4 @@
 // src/lib/supabase.js
-// Updated for new category structure
 
 import { createClient } from '@supabase/supabase-js'
 
