@@ -5,14 +5,14 @@ const DifficultySelect = ({
   currentStreak,
   expansionPacks, 
   startGame,
-  onArchiveClick,  // Archive handler
-  hasArchiveAccess,  // Archive access status - ADDED THIS
-  onExpansionClick,  // Expansion handler
+  onArchiveClick,
+  hasArchiveAccess,
+  onExpansionClick,
   setShowStats, 
   setShowSettings 
 }) => {
   
- const defaultExpansionPacks = [
+  const defaultExpansionPacks = [
     { name: 'Freereview', price: 'Free with Review', emoji: '📚', locked: false, requiresReview: true, category: 'Freereview' },
     { name: 'Animals', price: '£2.99', emoji: '🦁', locked: true, requiresReview: false, category: 'Animals' },
     { name: 'Countries', price: '£2.99', emoji: '🌍', locked: true, requiresReview: false, category: 'Countries' },
@@ -72,7 +72,7 @@ const DifficultySelect = ({
           
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => startGame('easy')}
+              onClick={() => startGame('easy', null, true)}
               className="bg-stone-900 hover:bg-black text-stone-50 py-3 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -83,7 +83,7 @@ const DifficultySelect = ({
             </button>
             
             <button
-              onClick={() => startGame('hard')}
+              onClick={() => startGame('hard', null, true)}
               className="bg-stone-400 hover:bg-stone-500 text-stone-50 py-3 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -94,7 +94,7 @@ const DifficultySelect = ({
             </button>
 
             <button
-              onClick={() => startGame('timed')}
+              onClick={() => startGame('timed', null, true)}
               className="bg-white hover:bg-stone-50 text-stone-800 py-3 px-2 border border-stone-300 flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -152,10 +152,11 @@ const DifficultySelect = ({
                 )}
               </button>
 
-              {/* Owned packs - FIXED: filter for !pack.locked */}
+              {/* Owned packs */}
               {packs.filter(pack => !pack.locked).map((pack, index) => (
                 <button
                   key={index}
+                  onClick={() => onExpansionClick?.(pack)}
                   className="bg-white hover:bg-stone-50 text-stone-800 font-light py-2 px-3 transition-all duration-300 border border-stone-200 relative"
                   style={{ minWidth: '100px' }}
                 >
