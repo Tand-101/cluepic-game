@@ -9,29 +9,10 @@ import Settings from './components/Settings';
 import HintShop from './components/HintShop';
 import ClueShop from './components/ClueShop';
 import Stats from './components/Stats';
-import ExpansionPackPurchase from './components/ExpansionPackPurchase';  // NEW
-import PremiumPurchase from './components/PremiumPurchase';  // NEW
+import ExpansionPackPurchase from './components/ExpansionPackPurchase';
+import PremiumPurchase from './components/PremiumPurchase';
 import { supabase } from './lib/supabase';
 import { DEV_MODE, isCategoryLocked } from './config/categories';
-
-// Emergency error display
-window.addEventListener('error', (e) => {
-  console.error('💥 GLOBAL ERROR:', e.error);
-  document.body.innerHTML = `
-    <div style="padding: 20px; font-family: monospace; background: #fee; min-height: 100vh;">
-      <h1 style="color: #d00;">⚠️ App Error</h1>
-      <h2>Error Message:</h2>
-      <pre style="background: white; padding: 10px; overflow: auto;">${e.error?.message || 'Unknown error'}</pre>
-      <h2>Stack Trace:</h2>
-      <pre style="background: white; padding: 10px; overflow: auto; font-size: 11px;">${e.error?.stack || 'No stack'}</pre>
-      <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; font-size: 16px;">
-        Reload Page
-      </button>
-    </div>
-  `;
-});
-
-console.log('🎮 App.jsx loaded at:', new Date().toISOString());
 
 const CluepicGame = () => {
   const [userId, setUserId] = useState(null);
@@ -68,9 +49,9 @@ const CluepicGame = () => {
   const [archivePuzzles, setArchivePuzzles] = useState([]);
   const [isPlayingArchive, setIsPlayingArchive] = useState(false);
   const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);
-     const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedExpansion, setSelectedExpansion] = useState(null);
   const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [userStats, setUserStats] = useState({
     total: { played: 0, won: 0, score: 0, winRate: 0 },
     classic: { played: 0, won: 0, score: 0, winRate: 0 },
@@ -82,76 +63,61 @@ const CluepicGame = () => {
   const maxAttempts = 5;
   const puzzle = puzzles[currentPuzzle];
 
-// Initialize user on mount
-useEffect(() => {
-  const initUser = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No user logged in - showing guest mode');
+  // Initialize user on mount
+  useEffect(() => {
+    const initUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
         
-        // Set up guest mode with default values
-        setUserId('guest_' + Date.now());
-        setTotalScore(0);
-        setCurrentStreak(0);
-        setHintsRemaining(5);
-        setCluesRemaining(5);
-        setIsPremium(false);
-        setHasArchiveAccess(false);
-        
-        console.log('📊 Fetching daily puzzles for guest...');
-        
-        // Fetch daily puzzles for guest
-        const dailies = await fetchDailyPuzzles();
-        console.log('📦 Daily puzzles fetched:', {
-          classic: dailies?.Classic?.length || 0,
-          challenge: dailies?.Challenge?.length || 0,
-          timed: dailies?.Timed?.length || 0
-        });
-        setDailyPuzzles(dailies);
-        
-        console.log('✅ Guest mode initialized');
-        return;
+        if (!user) {
+          console.log('No user logged in - showing guest mode');
+          setUserId('guest_' + Date.now());
+          setTotalScore(0);
+          setCurrentStreak(0);
+          setHintsRemaining(5);
+          setCluesRemaining(5);
+          setIsPremium(false);
+          setHasArchiveAccess(false);
+          
+          const dailies = await fetchDailyPuzzles();
+          setDailyPuzzles(dailies);
+          return;
+        }
+
+        setUserId(user.id);
+
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+          setTotalScore(profile.total_score);
+          setCurrentStreak(profile.current_streak);
+          setHintsRemaining(profile.hints_remaining);
+          setCluesRemaining(profile.clues_remaining);
+          setIsPremium(profile.is_premium);
+          setHasArchiveAccess(profile.has_archive_access || false);
+          
+          const newStreak = await updateStreak(user.id, profile.last_login_date);
+          setCurrentStreak(newStreak);
+          
+          const stats = await getUserStatistics(user.id);
+          setUserStats(stats);
+          
+          const dailies = await fetchDailyPuzzles();
+          setDailyPuzzles(dailies);
+        }
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
       }
-
-      // User is logged in
-      setUserId(user.id);
-
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profile) {
-        setUserProfile(profile);
-        setTotalScore(profile.total_score);
-        setCurrentStreak(profile.current_streak);
-        setHintsRemaining(profile.hints_remaining);
-        setCluesRemaining(profile.clues_remaining);
-        setIsPremium(profile.is_premium);
-        setHasArchiveAccess(profile.has_archive_access || false);
-        
-        const newStreak = await updateStreak(user.id, profile.last_login_date);
-        setCurrentStreak(newStreak);
-        
-        const stats = await getUserStatistics(user.id);
-        setUserStats(stats);
-        
-        const dailies = await fetchDailyPuzzles();
-        setDailyPuzzles(dailies);
-      }
-    } catch (error) {
-      console.error('Error initializing user:', error);
-      setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
-    }
-  };
-  
-  initUser();
-}, []);
+    };
+    
+    initUser();
+  }, []);
 
         const { data: profile, error } = await supabase
           .from('user_profiles')
