@@ -48,6 +48,7 @@ const CluepicGame = () => {
   const [showArchive, setShowArchive] = useState(false);
   const [archivePuzzles, setArchivePuzzles] = useState([]);
   const [isPlayingArchive, setIsPlayingArchive] = useState(false);
+         const [isPlayingDaily, setIsPlayingDaily] = useState(false);
   const [showExpansionPurchase, setShowExpansionPurchase] = useState(false);
   const [selectedExpansion, setSelectedExpansion] = useState(null);
   const [showPremiumPurchase, setShowPremiumPurchase] = useState(false);
@@ -120,23 +121,55 @@ const CluepicGame = () => {
   }, []);
 
   // Load puzzles when difficulty changes
-  useEffect(() => {
-    const loadPuzzles = async () => {
-      if (difficulty) {
-        const fetchedPuzzles = await fetchPuzzlesByDifficulty(difficulty, selectedCategory);
-        setPuzzles(fetchedPuzzles);
-        
-        if (fetchedPuzzles.length > 0) {
-          setUserInput(Array(fetchedPuzzles[0].word.length).fill(''));
-          setEffectType(getEffectType(fetchedPuzzles[0].id));
-        }
-      }
-    };
+useEffect(() => {
+  const loadPuzzles = async () => {
+    if (!difficulty) return;
     
-    if (!showDifficultySelect) {
-      loadPuzzles();
+    console.log('🔍 Loading puzzles:', { difficulty, selectedCategory, isPlayingDaily });
+    
+    // If playing daily mode, use the pre-loaded daily puzzles
+    if (isPlayingDaily) {
+      const difficultyMap = {
+        'easy': 'Classic',
+        'hard': 'Challenge',
+        'timed': 'Timed'
+      };
+      const dailyKey = difficultyMap[difficulty];
+      
+      if (dailyPuzzles[dailyKey] && dailyPuzzles[dailyKey].length > 0) {
+        console.log(`✅ Using ${dailyPuzzles[dailyKey].length} daily ${dailyKey} puzzles`);
+        setPuzzles(dailyPuzzles[dailyKey]);
+        setUserInput(Array(dailyPuzzles[dailyKey][0].word.length).fill(''));
+        setEffectType(getEffectType(dailyPuzzles[dailyKey][0].id));
+      } else {
+        console.warn(`⚠️ No daily puzzles available for ${dailyKey}`);
+        setPuzzles([]);
+      }
+      return;
     }
-  }, [difficulty, showDifficultySelect, selectedCategory]);
+    
+    // Otherwise fetch puzzles by difficulty and category
+    const fetchedPuzzles = await fetchPuzzlesByDifficulty(difficulty, selectedCategory);
+    console.log(`📦 Fetched ${fetchedPuzzles.length} puzzles for ${selectedCategory || 'all categories'}`);
+    
+    if (fetchedPuzzles.length === 0) {
+      console.warn(`⚠️ No puzzles found for difficulty=${difficulty}, category=${selectedCategory}`);
+      alert(`No puzzles available for this category yet. Coming soon!`);
+      goHome();
+      return;
+    }
+    
+    setPuzzles(fetchedPuzzles);
+    if (fetchedPuzzles.length > 0) {
+      setUserInput(Array(fetchedPuzzles[0].word.length).fill(''));
+      setEffectType(getEffectType(fetchedPuzzles[0].id));
+    }
+  };
+  
+  if (!showDifficultySelect) {
+    loadPuzzles();
+  }
+}, [difficulty, showDifficultySelect, selectedCategory, isPlayingDaily]);
 
   // Reset puzzle state when changing puzzles
   useEffect(() => {
@@ -194,14 +227,15 @@ const CluepicGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, userInput, correctLetters]);
 
-         const startGame = (selectedDifficulty, category = null) => {
-    setDifficulty(selectedDifficulty);
-    setSelectedCategory(category);
-    setShowDifficultySelect(false);
-    if (selectedDifficulty === 'timed') {
-      setTimerActive(true);
-    }
-  };
+  const startGame = (selectedDifficulty, category = null, isDailyMode = false) => {
+  setDifficulty(selectedDifficulty);
+  setSelectedCategory(category);
+  setIsPlayingDaily(isDailyMode);
+  setShowDifficultySelect(false);
+  if (selectedDifficulty === 'timed') {
+    setTimerActive(true);
+  }
+};
 
   // Archive Functions
   const handleArchiveClick = async () => {
@@ -452,14 +486,16 @@ ${squares.join('')}
   };
 
   const goHome = () => {
-    setShowDifficultySelect(true);
-    setAttempts(0);
-    setCorrectLetters(new Set());
-    setGameState('playing');
-    setTimerActive(false);
-    setClueRevealed(false);
-    setIsPlayingArchive(false);
-  };
+  setShowDifficultySelect(true);
+  setAttempts(0);
+  setCorrectLetters(new Set());
+  setGameState('playing');
+  setTimerActive(false);
+  setClueRevealed(false);
+  setIsPlayingArchive(false);
+  setIsPlayingDaily(false);
+  setSelectedCategory(null);
+};
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
