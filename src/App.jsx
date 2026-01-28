@@ -104,18 +104,13 @@ useEffect(() => {
           console.log('📊 Fetching daily puzzles for guest...');
           
           // Fetch daily puzzles for guest
-          try {
-            const dailies = await fetchDailyPuzzles();
-            console.log('📦 Daily puzzles fetched:', {
-              classic: dailies?.Classic?.length || 0,
-              challenge: dailies?.Challenge?.length || 0,
-              timed: dailies?.Timed?.length || 0
-            });
-            setDailyPuzzles(dailies);
-          } catch (err) {
-            console.error('❌ Failed to fetch daily puzzles:', err);
-            setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
-          }
+          const dailies = await fetchDailyPuzzles();
+          console.log('📦 Daily puzzles fetched:', {
+            classic: dailies?.Classic?.length || 0,
+            challenge: dailies?.Challenge?.length || 0,
+            timed: dailies?.Timed?.length || 0
+          });
+          setDailyPuzzles(dailies);
           
           console.log('✅ Guest mode initialized - showing home screen');
           return;
@@ -123,6 +118,40 @@ useEffect(() => {
 
         // User is logged in - continue with normal flow
         setUserId(user.id);
+
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+          setTotalScore(profile.total_score);
+          setCurrentStreak(profile.current_streak);
+          setHintsRemaining(profile.hints_remaining);
+          setCluesRemaining(profile.clues_remaining);
+          setIsPremium(profile.is_premium);
+          setHasArchiveAccess(profile.has_archive_access || false);
+          
+          const newStreak = await updateStreak(user.id, profile.last_login_date);
+          setCurrentStreak(newStreak);
+          
+          const stats = await getUserStatistics(user.id);
+          setUserStats(stats);
+          
+          const dailies = await fetchDailyPuzzles();
+          setDailyPuzzles(dailies);
+        }
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        // Set safe defaults so app doesn't crash
+        setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
+      }
+    };
+    
+    initUser();
+  }, []);
 
         const { data: profile, error } = await supabase
           .from('user_profiles')
