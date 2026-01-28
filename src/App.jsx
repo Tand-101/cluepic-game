@@ -63,7 +63,7 @@ const CluepicGame = () => {
   const maxAttempts = 5;
   const puzzle = puzzles[currentPuzzle];
 
-  // Initialize user on mount
+         // Initialize user on mount
   useEffect(() => {
     const initUser = async () => {
       try {
@@ -119,90 +119,7 @@ const CluepicGame = () => {
     initUser();
   }, []);
 
-        const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profile) {
-          setUserProfile(profile);
-          setTotalScore(profile.total_score);
-          setCurrentStreak(profile.current_streak);
-          setHintsRemaining(profile.hints_remaining);
-          setCluesRemaining(profile.clues_remaining);
-          setIsPremium(profile.is_premium);
-          setHasArchiveAccess(profile.has_archive_access || false);
-          
-          const newStreak = await updateStreak(user.id, profile.last_login_date);
-          setCurrentStreak(newStreak);
-          
-          const stats = await getUserStatistics(user.id);
-          setUserStats(stats);
-          
-          const dailies = await fetchDailyPuzzles();
-          setDailyPuzzles(dailies);
-        }
-      } catch (error) {
-        console.error('Error initializing user:', error);
-        // App will still work in guest mode
-      }
-    };
-    
-    initUser();
-  }, []);
-  
-          // Set up guest mode with default values
-          setUserId('guest_' + Date.now());
-          setTotalScore(0);
-          setCurrentStreak(0);
-          setHintsRemaining(5);
-          setCluesRemaining(5);
-          setIsPremium(false);
-          setHasArchiveAccess(false);
-          
-          // Fetch daily puzzles for guest
-          const dailies = await fetchDailyPuzzles();
-          setDailyPuzzles(dailies);
-          return;
-        }
-
-        setUserId(user.id);
-
-        const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profile) {
-          setUserProfile(profile);
-          setTotalScore(profile.total_score);
-          setCurrentStreak(profile.current_streak);
-          setHintsRemaining(profile.hints_remaining);
-          setCluesRemaining(profile.clues_remaining);
-          setIsPremium(profile.is_premium);
-          setHasArchiveAccess(profile.has_archive_access || false);
-          
-          const newStreak = await updateStreak(user.id, profile.last_login_date);
-          setCurrentStreak(newStreak);
-          
-          const stats = await getUserStatistics(user.id);
-          setUserStats(stats);
-          
-          const dailies = await fetchDailyPuzzles();
-          setDailyPuzzles(dailies);
-        }
-      } catch (error) {
-        console.error('Error initializing user:', error);
-        // App will still work in guest mode
-      }
-    };
-    
-    initUser();
-  }, []);
-
-  // Load puzzles when difficulty changes - Amendment 3
+  // Load puzzles when difficulty changes
   useEffect(() => {
     const loadPuzzles = async () => {
       if (difficulty) {
@@ -219,7 +136,7 @@ const CluepicGame = () => {
     if (!showDifficultySelect) {
       loadPuzzles();
     }
-  }, [difficulty, showDifficultySelect]);
+  }, [difficulty, showDifficultySelect, selectedCategory]);
 
   // Reset puzzle state when changing puzzles
   useEffect(() => {
@@ -277,7 +194,7 @@ const CluepicGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, userInput, correctLetters]);
 
- const startGame = (selectedDifficulty, category = null) => {
+         const startGame = (selectedDifficulty, category = null) => {
     setDifficulty(selectedDifficulty);
     setSelectedCategory(category);
     setShowDifficultySelect(false);
@@ -286,7 +203,7 @@ const CluepicGame = () => {
     }
   };
 
-  // Archive Functions - NEW
+  // Archive Functions
   const handleArchiveClick = async () => {
     if (hasArchiveAccess) {
       const archive = await fetchArchivePuzzles(true);
@@ -352,7 +269,7 @@ const CluepicGame = () => {
     setShowArchive(false);
   };
 
-// Amendment 7: Use clue
+  // Use clue
   const useClue = () => {
     if (cluesRemaining > 0 || isPremium) {
       setClueRevealed(true);
@@ -397,7 +314,7 @@ const CluepicGame = () => {
     }
   };
 
-  // Amendment 13: Red boxes for failed puzzles
+         // Share results
   const shareResults = () => {
     const modeEmoji = difficulty === 'easy' ? '🟢' : difficulty === 'timed' ? '⚡' : '🔴';
     const attemptsText = gameState === 'won' ? `${attempts + 1}/${maxAttempts}` : 'X/5';
@@ -483,7 +400,7 @@ ${squares.join('')}
       if (newAttempts >= maxAttempts) {
         setGameState('lost');
         setTimerActive(false);
-// Track Unsplash download (required for compliance)
+        // Track Unsplash download (required for compliance)
         if (puzzle.downloadLocation) {
           trackUnsplashDownload(puzzle.downloadLocation);
         }
@@ -553,7 +470,8 @@ ${squares.join('')}
   const handlePurchasePremium = (type) => {
     alert(`Premium ${type} purchase coming soon!`);
   };
-// Handle hint/clue purchases - Preserves free starting balance
+
+  // Handle hint/clue purchases - Preserves free starting balance
   const handleShopPurchase = async (type, pkg) => {
     if (pkg.type === 'premium') {
       setShowPremiumPurchase(true);
@@ -619,7 +537,7 @@ ${squares.join('')}
       setShowExpansionPurchase(false);
       setSelectedExpansion(null);
     }
-  
+  };
 
   // Handle clicking expansion tile
   const handleExpansionClick = (pack) => {
@@ -663,8 +581,9 @@ ${squares.join('')}
         .update({ is_premium: true })
         .eq('user_id', userId);
     }
-  };     
-// Unsplash API compliance - Track photo downloads
+  };
+
+  // Unsplash API compliance - Track photo downloads
   const trackUnsplashDownload = async (downloadLocation) => {
     if (!downloadLocation) return;
     
@@ -677,8 +596,8 @@ ${squares.join('')}
       console.error('Unsplash download tracking failed:', error);
     }
   };
-         
-// Show different screens
+
+         // Show different screens
   if (showSettings) {
     return (
       <Settings
@@ -698,7 +617,7 @@ ${squares.join('')}
       <HintShop
         hintsRemaining={hintsRemaining}
         onClose={() => setShowHintShop(false)}
-        onPurchase={handleShopPurchase}  // NEW
+        onPurchase={handleShopPurchase}
       />
     );
   }
@@ -708,12 +627,12 @@ ${squares.join('')}
       <ClueShop
         cluesRemaining={cluesRemaining}
         onClose={() => setShowClueShop(false)}
-        onPurchase={handleShopPurchase}  // NEW
+        onPurchase={handleShopPurchase}
       />
     );
   }
 
-  // Expansion Pack Purchase Screen - NEW
+  // Expansion Pack Purchase Screen
   if (showExpansionPurchase && selectedExpansion) {
     return (
       <ExpansionPackPurchase
@@ -727,7 +646,7 @@ ${squares.join('')}
     );
   }
 
-  // Premium Purchase Screen - NEW
+  // Premium Purchase Screen
   if (showPremiumPurchase) {
     return (
       <PremiumPurchase
@@ -745,14 +664,14 @@ ${squares.join('')}
         startGame={startGame}
         onArchiveClick={handleArchiveClick}
         hasArchiveAccess={hasArchiveAccess}
-        onExpansionClick={handleExpansionClick}  // NEW
+        onExpansionClick={handleExpansionClick}
         setShowStats={setShowStats}
         setShowSettings={setShowSettings}
       />
     );
   }
 
-  // Archive View - NEW
+  // Archive View
   if (showArchive) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
@@ -836,32 +755,7 @@ ${squares.join('')}
     );
   }
 
-// Emergency fallback
-  if (!puzzle && !showDifficultySelect) {
-    console.log('⚠️ No puzzle and not showing difficulty select!');
-    return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🎮</div>
-          <h1 className="text-2xl font-light mb-4">Loading Cluepic...</h1>
-          <p className="text-stone-600">Fetching puzzles from database</p>
-          <button 
-            onClick={goHome}
-            className="mt-4 bg-stone-800 text-stone-50 px-6 py-2 text-sm"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-           console.log('🎨 Rendering main game screen');
-
-  return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-           
-        // Main game screen
+  // Main game screen
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <style>{`
@@ -898,7 +792,7 @@ ${squares.join('')}
                 {formatTime(timeRemaining)}
               </div>
             )}
-           <button 
+            <button 
               onClick={() => setShowClueShop(true)}
               className={`relative bg-white border border-stone-200 px-3 py-1 text-xs text-stone-800 hover:bg-stone-50 transition-colors ${
                 cluesRemaining === 0 ? 'pr-7' : ''
@@ -1091,7 +985,7 @@ ${squares.join('')}
           <button
             onClick={goHome}
             className="text-stone-600 hover:text-stone-800 flex items-center gap-2 text-xs transition-colors"
-                   >
+          >
             <Home size={14} /> HOME
           </button>
         </div>
@@ -1099,5 +993,5 @@ ${squares.join('')}
     </div>
   );
 };
-         };  // ← ADD THIS LINE to close CluepicGame function
+
 export default CluepicGame;
