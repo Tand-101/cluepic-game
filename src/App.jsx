@@ -152,24 +152,6 @@ const CluepicGame = () => {
     initUser();
   }, []);
   
-  // Fetch daily puzzles for guest
-  try {
-    const dailies = await fetchDailyPuzzles();
-    console.log('📦 Daily puzzles fetched:', {
-      classic: dailies?.Classic?.length || 0,
-      challenge: dailies?.Challenge?.length || 0,
-      timed: dailies?.Timed?.length || 0
-    });
-    setDailyPuzzles(dailies);
-  } catch (err) {
-    console.error('❌ Failed to fetch daily puzzles:', err);
-    // Set empty state so app doesn't crash
-    setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
-  }
-  
-  console.log('✅ Guest mode initialized - showing home screen');
-  return;
-}
           // Set up guest mode with default values
           setUserId('guest_' + Date.now());
           setTotalScore(0);
