@@ -14,6 +14,25 @@ import PremiumPurchase from './components/PremiumPurchase';  // NEW
 import { supabase } from './lib/supabase';
 import { DEV_MODE, isCategoryLocked } from './config/categories';
 
+// Emergency error display
+window.addEventListener('error', (e) => {
+  console.error('💥 GLOBAL ERROR:', e.error);
+  document.body.innerHTML = `
+    <div style="padding: 20px; font-family: monospace; background: #fee; min-height: 100vh;">
+      <h1 style="color: #d00;">⚠️ App Error</h1>
+      <h2>Error Message:</h2>
+      <pre style="background: white; padding: 10px; overflow: auto;">${e.error?.message || 'Unknown error'}</pre>
+      <h2>Stack Trace:</h2>
+      <pre style="background: white; padding: 10px; overflow: auto; font-size: 11px;">${e.error?.stack || 'No stack'}</pre>
+      <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; font-size: 16px;">
+        Reload Page
+      </button>
+    </div>
+  `;
+});
+
+console.log('🎮 App.jsx loaded at:', new Date().toISOString());
+
 const CluepicGame = () => {
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -71,8 +90,38 @@ const CluepicGame = () => {
           data: { user },
         } = await supabase.auth.getUser();
         
-        if (!user) {
-          console.log('No user logged in - showing guest mode');
+       if (!user) {
+  console.log('No user logged in - showing guest mode');
+  
+  // Set up guest mode with default values
+  setUserId('guest_' + Date.now());
+  setTotalScore(0);
+  setCurrentStreak(0);
+  setHintsRemaining(5);
+  setCluesRemaining(5);
+  setIsPremium(false);
+  setHasArchiveAccess(false);
+  
+  console.log('📊 Fetching daily puzzles for guest...');
+  
+  // Fetch daily puzzles for guest
+  try {
+    const dailies = await fetchDailyPuzzles();
+    console.log('📦 Daily puzzles fetched:', {
+      classic: dailies?.Classic?.length || 0,
+      challenge: dailies?.Challenge?.length || 0,
+      timed: dailies?.Timed?.length || 0
+    });
+    setDailyPuzzles(dailies);
+  } catch (err) {
+    console.error('❌ Failed to fetch daily puzzles:', err);
+    // Set empty state so app doesn't crash
+    setDailyPuzzles({ Classic: [], Challenge: [], Timed: [] });
+  }
+  
+  console.log('✅ Guest mode initialized - showing home screen');
+  return;
+}
           // Set up guest mode with default values
           setUserId('guest_' + Date.now());
           setTotalScore(0);
@@ -757,6 +806,31 @@ ${squares.join('')}
     );
   }
 
+// Emergency fallback
+  if (!puzzle && !showDifficultySelect) {
+    console.log('⚠️ No puzzle and not showing difficulty select!');
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🎮</div>
+          <h1 className="text-2xl font-light mb-4">Loading Cluepic...</h1>
+          <p className="text-stone-600">Fetching puzzles from database</p>
+          <button 
+            onClick={goHome}
+            className="mt-4 bg-stone-800 text-stone-50 px-6 py-2 text-sm"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+           console.log('🎨 Rendering main game screen');
+
+  return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+           
         // Main game screen
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
