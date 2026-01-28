@@ -51,43 +51,10 @@ export const fetchPuzzlesByDifficulty = async (difficulty, category = null) => {
       .eq('active', true)
       .eq('difficulty', targetDifficulty)
     
-    // Fetch puzzles by difficulty and optional category
-export const fetchPuzzlesByDifficulty = async (difficulty, category = null) => {
-  try {
-    const difficultyMap = {
-      'easy': 'Classic',
-      'hard': 'Challenge', 
-      'timed': 'Timed'
-    }
-    
-    const targetDifficulty = difficultyMap[difficulty] || 'Classic'
-    
-    let query = supabase
-      .from('search_terms')
-      .select(`
-        id,
-        term,
-        category,
-        clue,
-        difficulty,
-        active,
-        images (
-          image_url,
-          thumbnail_url,
-          photographer,
-          photographer_url,
-          unsplash_photo_id,
-          download_location
-        )
-      `)
-      .eq('active', true)
-      .eq('difficulty', targetDifficulty)
-    
     // If category specified, filter by it
     if (category) {
       query = query.eq('category', category)
     }
-    // REMOVED: No longer excluding 'Daily' - shows ALL puzzles when no category selected
     
     query = query.order('term', { ascending: true })
 
@@ -115,38 +82,6 @@ export const fetchPuzzlesByDifficulty = async (difficulty, category = null) => {
       })
 
     console.log(`✅ Fetched ${puzzles.length} ${targetDifficulty} puzzles${category ? ` for category ${category}` : ' (all categories)'}`)
-    return puzzles.length > 0 ? puzzles : []
-  } catch (error) {
-    console.error('Error fetching puzzles by difficulty:', error)
-    return []
-  }
-}
-    
-    query = query.order('term', { ascending: true })
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    const puzzles = data
-      .filter(item => item.images && item.images.length > 0)
-      .map(item => {
-        const image = item.images[0]
-        return {
-          id: item.id,
-          word: item.term.toUpperCase(),
-          image: formatImageUrl(image.image_url),
-          thumbnail: formatImageUrl(image.thumbnail_url),
-          hint: item.clue || 'Guess the word',
-          category: item.category,
-          difficulty: item.difficulty,
-          photographer: image.photographer,
-          photographerUrl: image.photographer_url,
-          unsplashPhotoId: image.unsplash_photo_id,
-          downloadLocation: image.download_location
-        }
-      })
-
     return puzzles.length > 0 ? puzzles : []
   } catch (error) {
     console.error('Error fetching puzzles by difficulty:', error)
