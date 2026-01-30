@@ -59,7 +59,8 @@ const CluepicGame = () => {
     challenge: { played: 0, won: 0, score: 0, winRate: 0 },
     timed: { played: 0, won: 0, score: 0, winRate: 0 }
   });
-  
+  const [showCategoryModeSelect, setShowCategoryModeSelect] = useState(false);
+const [pendingCategory, setPendingCategory] = useState(null);
   const inputRefs = useRef([]);
   const maxAttempts = 5;
   const puzzle = puzzles[currentPuzzle];
@@ -575,18 +576,17 @@ ${squares.join('')}
     }
   };
 
-  // Handle clicking expansion tile
-  const handleExpansionClick = (pack) => {
-    // Check if locked
-    if (pack.locked && !DEV_MODE) {
-      setSelectedExpansion(pack);
-      setShowExpansionPurchase(true);
-    } else {
-      // Already unlocked - start playing
-      startGame('easy', pack.category);
-    }
-  };
-
+ const handleExpansionClick = (pack) => {
+  // Check if locked
+  if (pack.locked && !DEV_MODE) {
+    setSelectedExpansion(pack);
+    setShowExpansionPurchase(true);
+  } else {
+    // Show mode selection screen
+    setPendingCategory(pack.category);
+    setShowCategoryModeSelect(true);
+  }
+};
   // Handle premium subscription purchase  
   const handlePremiumSubscription = async (plan) => {
     if (DEV_MODE) {
@@ -691,7 +691,86 @@ ${squares.join('')}
       />
     );
   }
+// Category Mode Selection Screen
+if (showCategoryModeSelect && pendingCategory) {
+  return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            {pendingCategory.toUpperCase()}
+          </h1>
+          <button 
+            onClick={() => {
+              setShowCategoryModeSelect(false);
+              setPendingCategory(null);
+            }}
+            className="text-stone-600 hover:text-stone-800"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <p className="text-stone-600 text-sm mb-4 text-center">Select difficulty mode</p>
 
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <button
+            onClick={() => {
+              startGame('easy', pendingCategory, false);
+              setShowCategoryModeSelect(false);
+            }}
+            className="bg-stone-900 hover:bg-black text-stone-50 py-4 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="1" />
+              <rect x="7" y="7" width="10" height="10" />
+            </svg>
+            <div className="text-xs tracking-wider" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CLASSIC</div>
+          </button>
+          
+          <button
+            onClick={() => {
+              startGame('hard', pendingCategory, false);
+              setShowCategoryModeSelect(false);
+            }}
+            className="bg-stone-400 hover:bg-stone-500 text-stone-50 py-4 px-2 flex flex-col items-center justify-center gap-1 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <circle cx="12" cy="18" r="0.5" fill="currentColor" />
+            </svg>
+            <div className="text-xs tracking-wider" style={{ fontFamily: "'Cormorant Garamond', serif" }}>CHALLENGE</div>
+          </button>
+
+          <button
+            onClick={() => {
+              startGame('timed', pendingCategory, false);
+              setShowCategoryModeSelect(false);
+            }}
+            className="bg-white hover:bg-stone-50 text-stone-800 py-4 px-2 border border-stone-300 flex flex-col items-center justify-center gap-1 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="13" r="9" />
+              <polyline points="12 7 12 13 15 15" />
+              <path d="M9 3 h6" />
+            </svg>
+            <div className="text-xs tracking-wider" style={{ fontFamily: "'Cormorant Garamond', serif" }}>TIMED</div>
+          </button>
+        </div>
+
+        <button
+          onClick={() => {
+            setShowCategoryModeSelect(false);
+            setPendingCategory(null);
+          }}
+          className="w-full bg-stone-800 text-stone-50 py-2 text-xs tracking-widest hover:bg-stone-900 transition-colors"
+        >
+          BACK
+        </button>
+      </div>
+    </div>
+  );
+}
   if (showDifficultySelect) {
     return (
       <DifficultySelect
