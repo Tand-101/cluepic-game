@@ -72,19 +72,19 @@ const [pendingCategory, setPendingCategory] = useState(null);
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          console.log('No user logged in - showing guest mode');
-          setUserId('guest_' + Date.now());
-          setTotalScore(0);
-          setCurrentStreak(0);
-          setHintsRemaining(5);
-          setCluesRemaining(5);
-          setIsPremium(false);
-          setHasArchiveAccess(false);
-          
-          const dailies = await fetchDailyPuzzles();
-          setDailyPuzzles(dailies);
-          return;
-        }
+  console.log('No user logged in - showing guest mode');
+  setUserId('guest_' + Date.now());
+  setTotalScore(0);
+  setCurrentStreak(0);
+  setHintsRemaining(5);
+  setCluesRemaining(5);
+  setIsPremium(false);
+  setHasArchiveAccess(false);
+  
+  const dailies = await fetchDailyPuzzles();
+  setDailyPuzzles(dailies);
+  return;
+}
 
         setUserId(user.id);
 
