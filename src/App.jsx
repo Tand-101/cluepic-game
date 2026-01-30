@@ -916,12 +916,12 @@ ${squares.join('')}
           </div>
         </div>
 
-        {/* Clue display - Shows from attempt 1 */}
-        {gameState === 'playing' && (clueRevealed || attempts >= 0) && (
-          <div className="mb-3 text-center animate-fadeIn">
-            <p className="text-stone-600 text-xs">{puzzle.hint}</p>
-          </div>
-        )}
+       {/* Clue display - Shows from attempt 3 */}
+{gameState === 'playing' && (clueRevealed || attempts >= 2) && (
+  <div className="mb-3 text-center animate-fadeIn">
+    <p className="text-stone-600 text-xs">{puzzle.hint}</p>
+  </div>
+)}
 
         {/* Letter input */}
         <div className="mb-4">
