@@ -89,7 +89,6 @@ export const fetchPuzzlesByDifficulty = async (difficulty, category = null) => {
   }
 }
 
-// Fetch today's daily puzzles (5x Classic, 5x Challenge, 5x Timed)
 export const fetchDailyPuzzles = async () => {
   try {
     const today = new Date().toISOString().split('T')[0]
@@ -103,17 +102,18 @@ export const fetchDailyPuzzles = async () => {
         clue,
         difficulty,
         active,
-        images (
+        images!inner (
           image_url,
           thumbnail_url,
           photographer,
           photographer_url,
-          unsplash_photo_id,
+          unsplash_image_id,
           download_location
         )
       `)
       .eq('active', true)
       .eq('category', 'Daily')
+      .not('images', 'is', null)  // Only get terms WITH images
       .order('id', { ascending: true })
 
     if (error) throw error
